@@ -214,16 +214,13 @@ namespace Main
 
             string hostDir = Path.GetDirectoryName(aax).Replace("\"", "");
             file = $"\"{hostDir}\\{filename[0]}\\{file}";
-            //Console.WriteLine($"{file}");
 
             System.IO.Directory.CreateDirectory($"{hostDir}\\{filename[0]}");
 
 
-            //Create Audiobook title Dir and Merge the AudioBook as a purely muxed m4b
             Workings.Methods.SoftWare("src\\tools\\ffmpeg.exe", $"-activation_bytes {bytes} -i {aax} -metadata:g encoding_tool=\"iAmDeaf 1.0\" -metadata title=\"{title}\" -metadata comment=\"{comment}\" -c copy {file}.m4b\" -y", true);
 
             
-            //ffmpeg -i video.mp4 -map 0:v -map -0:V -c copy cover.jpg
             Workings.Methods.SoftWare("src\\tools\\ffmpeg.exe", $"-i {aax} -map 0:v -map -0:V -c copy {file}.jpg\" -y", true);
             string nfo = Workings.Methods.nfo(aax, $"{file}.m4b\"");
             Workings.Methods.Alert("Generating nfo");
