@@ -142,8 +142,8 @@ Publisher's Summary
                 using (StreamReader reader = SoftWare.StandardError)
                 {
                     string result = reader.ReadToEnd();
-                    return result;
                     SoftWare.WaitForExit();
+                    return result;
                 }
             }
             else
@@ -155,8 +155,8 @@ Publisher's Summary
                 using (StreamReader reader = SoftWare.StandardOutput)
                 {
                     string result = reader.ReadToEnd();
-                    return result;
                     SoftWare.WaitForExit();
+                    return result;
                 }
             }
         }
