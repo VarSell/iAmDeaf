@@ -174,8 +174,6 @@ namespace Main
             if (args.Length > 0)
             {
 
-                // To print the command line 
-                // arguments using foreach loop
                 foreach (Object obj in args)
                 {
                     aax = obj.ToString();
@@ -192,7 +190,7 @@ namespace Main
             }
 
 
-            //Stoppped as for now it creates all lines widely spaced and corrupts accented chars
+            
 
             Workings.Methods.Alert("Parsing File");
 
@@ -211,10 +209,6 @@ namespace Main
             Console.ResetColor();
             string comment = filename[4].Trim();
 
-            //file = $"\"{filename[0]}\\{file}";
-
-
-
 
             //*** create AAX Host dir HERE before ffmpeg merge
 
@@ -224,19 +218,11 @@ namespace Main
 
             System.IO.Directory.CreateDirectory($"{hostDir}\\{filename[0]}");
 
-            //***
-
-
-
-
-            //Comment is run through regex to assure the removal of corrupted characters. May be harmful if ripping foreign audiobooks
-            //comment = Regex.Replace(comment, @"[^A-Za-z0-9!#$%&'*+-/=?^_``{|}~.(),:;<>@[\]-]+ ", "");
-
 
             //Create Audiobook title Dir and Merge the AudioBook as a purely muxed m4b
             Workings.Methods.SoftWare("src\\tools\\ffmpeg.exe", $"-activation_bytes {bytes} -i {aax} -metadata:g encoding_tool=\"iAmDeaf 1.0\" -metadata title=\"{title}\" -metadata comment=\"{comment}\" -c copy {file}.m4b\" -y", true);
 
-            //Try extracting image cover from original aax
+            
             //ffmpeg -i video.mp4 -map 0:v -map -0:V -c copy cover.jpg
             Workings.Methods.SoftWare("src\\tools\\ffmpeg.exe", $"-i {aax} -map 0:v -map -0:V -c copy {file}.jpg\" -y", true);
             string nfo = Workings.Methods.nfo(aax, $"{file}.m4b\"");
