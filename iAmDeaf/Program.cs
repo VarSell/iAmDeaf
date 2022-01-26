@@ -61,7 +61,7 @@ Media Information
 
 Ripper:                  iAmDeaf 1.0
 
-Publisher summary
+Publisher's Summary
 =================
 {nfoPart[14].Trim()}
 ";
