@@ -15,7 +15,7 @@ namespace Workings
     static class iAmDeaf
     {
         public const string mark = "iAmDeaf";
-        public const string version = "1.1";
+        public const string version = "1.3";
     }
 
     class Methods
