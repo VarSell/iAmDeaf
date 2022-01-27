@@ -120,6 +120,8 @@ Publisher's Summary
             SoftWare($@"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffmpeg.exe", $" -i \"{m4b}.m4b\" -c copy {AppDomain.CurrentDomain.BaseDirectory}src\\data\\temp.mkv -y", true);
             SoftWare($@"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\mkvextract.exe", $" {AppDomain.CurrentDomain.BaseDirectory}src\\data\\temp.mkv chapters -s {AppDomain.CurrentDomain.BaseDirectory}src\\data\\chapters.txt", true);
 
+            //cleanup of cue method
+            File.Delete($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\temp.mkv");
 
             string cuegen = $"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\cuegen.vbs {AppDomain.CurrentDomain.BaseDirectory}src\\data\\chapters.txt";
 
