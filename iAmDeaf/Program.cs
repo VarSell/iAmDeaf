@@ -87,6 +87,12 @@ Publisher's Summary
             info[4] = SoftWare(mi, $"{aax} --Inform=General;%Track_More%", false);
 
             info[1] = info[1].Replace(" ", null).Replace("Book", null);
+
+            if (info[1].Contains("Volume"))
+            {
+                info[1] = info[1].Replace("Volume", "Volume ");
+            }
+
             if (info[1].Length > 1)
             {
                 info[1] = info[1];
@@ -107,14 +113,35 @@ Publisher's Summary
             Console.ResetColor();
         }
 
+
+        public static void cue(string m4b, string file)
+        {
+            Alert("Generating cue");
+            SoftWare($@"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffmpeg.exe", $" -i \"{m4b}.m4b\" -c copy {AppDomain.CurrentDomain.BaseDirectory}src\\data\\temp.mkv -y", true);
+            SoftWare($@"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\mkvextract.exe", $" {AppDomain.CurrentDomain.BaseDirectory}src\\data\\temp.mkv chapters -s {AppDomain.CurrentDomain.BaseDirectory}src\\data\\chapters.txt", true);
+
+
+            string cuegen = $"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\cuegen.vbs {AppDomain.CurrentDomain.BaseDirectory}src\\data\\chapters.txt";
+
+            Process.Start(@"cmd", @"/c " + cuegen);
+            
+            string[] cue = File.ReadAllLines($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\chapters.cue");
+            
+            cue[0] = $"FILE \"{Path.GetFileName($"{file}.m4b")}\" MP4";
+            File.WriteAllLines($"{file}.cue", cue);
+
+            
+        }
+
+
         public static string getBytes(string aax)
         {
 
             string checksum = SoftWare($@"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffprobe.exe", $"{aax}", true);
-            File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\checksum.txt", checksum.Replace(" ", ""));
-            string[] line = File.ReadAllLines($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\checksum.txt");
+            File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\_temp.txt", checksum.Replace(" ", ""));
+            string[] line = File.ReadAllLines($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\_temp.txt");
             checksum = (line[11].Split("==").Last());
-            File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\checksum.txt", checksum);
+            
 
             Alert($"Checksum: {checksum}");
 
@@ -127,7 +154,6 @@ Publisher's Summary
             string bytes = SoftWare($"rcrack.exe", $" . -h {checksum}", false);
 
             File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\bytes.txt", bytes.Replace(" ", ""));
-            File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\bytfffes.txt", bytes.Replace(" ", ""));
             line = File.ReadAllLines($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\bytes.txt");
             bytes = (line[32].Split("hex:").Last());
             File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\bytes.txt", bytes);
@@ -184,6 +210,8 @@ namespace Main
         {
             string aax = null;
 
+            
+
             if (args.Length > 0)
             {
 
@@ -211,7 +239,7 @@ namespace Main
 
             string bytes = Workings.Methods.getBytes(aax);
 
-            Workings.Methods.Alert("Writing..");
+            
             string[] filename = Workings.Methods.MediaInfo(aax);
             string title = filename[0];
             filename[0] = filename[0].Trim().Replace(":", " -");
@@ -226,18 +254,24 @@ namespace Main
             //*** create AAX Host dir HERE before ffmpeg merge
 
             string hostDir = Path.GetDirectoryName(aax).Replace("\"", "");
-            file = $"\"{hostDir}\\{filename[0]}\\{file}";
+            file = $"\"{hostDir}\\{filename[0]}\\{file.Trim()}";
 
             System.IO.Directory.CreateDirectory($"{hostDir}\\{filename[0]}");
 
-
+            Workings.Methods.Alert("Writing..");
             Workings.Methods.SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffmpeg.exe", $"-activation_bytes {bytes} -i {aax} -metadata:g encoding_tool=\"{Workings.iAmDeaf.mark} {Workings.iAmDeaf.version}\" -metadata title=\"{title}\" -metadata comment=\"{comment}\" -c copy {file}.m4b\" -y", true);
 
-            
+            Workings.Methods.Alert("Extracting jpg");
             Workings.Methods.SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffmpeg.exe", $"-i {aax} -map 0:v -map -0:V -c copy {file}.jpg\" -y", true);
             string nfo = Workings.Methods.nfo(aax, $"{file}.m4b\"");
+
+            Workings.Methods.cue($"{file.Replace("\"", "")}", $"{file.Replace("\"", "")}");
+
             Workings.Methods.Alert("Generating nfo");
             File.WriteAllText(($"{file}.nfo\"").Replace("\"", ""), nfo, Encoding.UTF8);
+
+
+            
 
             return 0;
 
