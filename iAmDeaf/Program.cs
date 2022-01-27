@@ -9,8 +9,14 @@ using System.Text.RegularExpressions;
 using System.Globalization;
 using System.Configuration;
 
+
 namespace Workings
 {
+    static class iAmDeaf
+    {
+        public const string mark = "iAmDeaf";
+        public const string version = "1.1";
+    }
 
     class Methods
     {
@@ -19,7 +25,7 @@ namespace Workings
         {
 
             string[] nfoPart = new string[15];
-            string mi = "src\\tools\\mediainfo.exe";
+            string mi = $"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\mediainfo.exe";
             nfoPart[0] = SoftWare(mi, $"{aax} --Inform=General;%Album%", false); //Title
             nfoPart[1] = SoftWare(mi, $"{aax} --Inform=General;%Performer%", false); //Author
             nfoPart[2] = SoftWare(mi, $"{aax} --Inform=General;%nrt%", false); //Narrator
@@ -53,13 +59,13 @@ namespace Workings
 
 Media Information
 =================
- Source Format:          Audible {nfoPart[9].Trim()} ({nfoPart[10].Trim()})
+ Source Format:          Audible {nfoPart[9].Trim().ToUpper()} ({nfoPart[10].Trim()})
  Source Bitrate:         {nfoPart[11].Trim()} kbps
 
  Encoded Codec:          {nfoPart[12].Trim()}
  Encoded Bitrate:        {nfoPart[13].Trim()} kbps
 
-Ripper:                  iAmDeaf 1.0
+Ripper:                  {iAmDeaf.mark} {iAmDeaf.version}
 
 Publisher's Summary
 ===================
@@ -71,7 +77,7 @@ Publisher's Summary
 
         public static string[] MediaInfo(string aax)
         {
-            string mi = "src\\tools\\mediainfo.exe";
+            string mi = $"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\mediainfo.exe";
             string[] info = new string[5];
 
             info[0] = SoftWare(mi, $"{aax} --Inform=General;%Album%", false);
@@ -104,22 +110,29 @@ Publisher's Summary
         public static string getBytes(string aax)
         {
 
-            string checksum = SoftWare($@"{Directory.GetCurrentDirectory()}\\src\\tools\\ffprobe.exe", $"{aax}", true);
-            File.WriteAllText("src\\data\\checksum.txt", checksum.Replace(" ", ""));
-            string[] line = File.ReadAllLines("src\\data\\checksum.txt");
+            string checksum = SoftWare($@"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffprobe.exe", $"{aax}", true);
+            File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\checksum.txt", checksum.Replace(" ", ""));
+            string[] line = File.ReadAllLines($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\checksum.txt");
             checksum = (line[11].Split("==").Last());
-            File.WriteAllText("src\\data\\checksum.txt", checksum);
+            File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\checksum.txt", checksum);
 
             Alert($"Checksum: {checksum}");
 
-            string bytes = SoftWare($@"{Directory.GetCurrentDirectory()}\\src\\tables\\rcrack.exe", $" . -h {checksum}", false);
-            File.WriteAllText("src\\data\\bytes.txt", bytes.Replace(" ", ""));
-            line = File.ReadAllLines("src\\data\\bytes.txt");
+            /*
+             * Just as a reminder, this is where current dir is changed, as rcrack doesnt like to be launched when it's not in its root dir
+             */
+
+            Directory.SetCurrentDirectory($"{AppDomain.CurrentDomain.BaseDirectory}src\\tables");
+
+            string bytes = SoftWare($"rcrack.exe", $" . -h {checksum}", false);
+
+            File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\bytes.txt", bytes.Replace(" ", ""));
+            File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\bytfffes.txt", bytes.Replace(" ", ""));
+            line = File.ReadAllLines($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\bytes.txt");
             bytes = (line[32].Split("hex:").Last());
-            File.WriteAllText("src\\data\\bytes.txt", bytes);
+            File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\bytes.txt", bytes);
 
             Alert($"ActBytes: {bytes}");
-
             return bytes;
         }
 
@@ -218,10 +231,10 @@ namespace Main
             System.IO.Directory.CreateDirectory($"{hostDir}\\{filename[0]}");
 
 
-            Workings.Methods.SoftWare("src\\tools\\ffmpeg.exe", $"-activation_bytes {bytes} -i {aax} -metadata:g encoding_tool=\"iAmDeaf 1.0\" -metadata title=\"{title}\" -metadata comment=\"{comment}\" -c copy {file}.m4b\" -y", true);
+            Workings.Methods.SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffmpeg.exe", $"-activation_bytes {bytes} -i {aax} -metadata:g encoding_tool=\"{Workings.iAmDeaf.mark} {Workings.iAmDeaf.version}\" -metadata title=\"{title}\" -metadata comment=\"{comment}\" -c copy {file}.m4b\" -y", true);
 
             
-            Workings.Methods.SoftWare("src\\tools\\ffmpeg.exe", $"-i {aax} -map 0:v -map -0:V -c copy {file}.jpg\" -y", true);
+            Workings.Methods.SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffmpeg.exe", $"-i {aax} -map 0:v -map -0:V -c copy {file}.jpg\" -y", true);
             string nfo = Workings.Methods.nfo(aax, $"{file}.m4b\"");
             Workings.Methods.Alert("Generating nfo");
             File.WriteAllText(($"{file}.nfo\"").Replace("\"", ""), nfo, Encoding.UTF8);
