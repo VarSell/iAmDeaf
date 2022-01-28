@@ -269,7 +269,7 @@ namespace Main
             string title = filename[0];
             filename[0] = filename[0].Trim().Replace(":", " -");
             //System.IO.Directory.CreateDirectory(filename[0]);
-            string file = ($@"{filename[2]} [{filename[1]}] {filename[3]}").Replace("'", "");
+            string file = ($@"{filename[2]} [{filename[1]}] {filename[3]}"); // add an icon
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine(file);
             Console.ResetColor();
