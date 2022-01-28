@@ -37,11 +37,27 @@ namespace Workings
             nfoPart[8] = SoftWare(mi, $"{aax} --Inform=\"Menu;%FrameCount%\"", false); //Chapters
             nfoPart[9] = SoftWare(mi, $"{aax} --Inform=General;%Format%", false); //general format
             nfoPart[10] = SoftWare(mi, $"{m4b} --Inform=Audio;%Format%", false); //audio format
-            nfoPart[11] = SoftWare(mi, $"{m4b} --Inform=Audio;%BitRate%", false); //source bitrate
-            nfoPart[11] = nfoPart[11].Substring(0, nfoPart[11].Length - 5);
+            nfoPart[11] = SoftWare(mi, $"{m4b} --Inform=Audio;%BitRate%", false).Trim(); //source bitrate
+            try
+            {
+                nfoPart[11] = (Int32.Parse(nfoPart[11]) / 1000).ToString();
+            }
+            catch
+            {
+                nfoPart[11] = "125";
+                AlertError("Source Bitrate ERROR");
+            }
             nfoPart[12] = SoftWare(mi, $"{m4b} --Inform=General;%CodecID%", false); //encoded codecID
             nfoPart[13] = SoftWare(mi, $"{m4b} --Inform=Audio;%BitRate%", false); //encoded bitrate
-            nfoPart[13] = nfoPart[13].Substring(0, nfoPart[13].Length - 5);
+            try
+            {
+                nfoPart[13] = (Int32.Parse(nfoPart[13]) / 1000).ToString();
+            }
+            catch
+            {
+                nfoPart[11] = "125";
+                AlertError("Output Bitrate ERROR");
+            }
             nfoPart[14] = SoftWare(mi, $"{aax} --Inform=General;%Track_More%", false); //comment
 
 
@@ -60,10 +76,10 @@ namespace Workings
 Media Information
 =================
  Source Format:          Audible {nfoPart[9].Trim().ToUpper()} ({nfoPart[10].Trim()})
- Source Bitrate:         {nfoPart[11].Trim()} kbps
+ Source Bitrate:         {nfoPart[11].ToString()} kbps
 
  Encoded Codec:          {nfoPart[12].Trim()}
- Encoded Bitrate:        {nfoPart[13].Trim()} kbps
+ Encoded Bitrate:        {nfoPart[13].ToString()} kbps
 
 Ripper:                  {iAmDeaf.mark} {iAmDeaf.version}
 
@@ -109,6 +125,13 @@ Publisher's Summary
         public static void Alert(string alert)
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"[{alert}]");
+            Console.ResetColor();
+        }
+
+        public static void AlertError(string alert)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"[{alert}]");
             Console.ResetColor();
         }
@@ -246,7 +269,7 @@ namespace Main
             string title = filename[0];
             filename[0] = filename[0].Trim().Replace(":", " -");
             //System.IO.Directory.CreateDirectory(filename[0]);
-            string file = $@"{filename[2]} [{filename[1]}] {filename[3]}";
+            string file = ($@"{filename[2]} [{filename[1]}] {filename[3]}").Replace("'", "");
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine(file);
             Console.ResetColor();
