@@ -44,7 +44,7 @@ namespace Workings
             catch
             {
                 nfoPart[11] = "125";
-                AlertError("Source Bitrate ERROR");
+                AlertError("nfo Source Bitrate ERROR");
             }
             nfoPart[12] = SoftWare(mi, $"{m4b} --Inform=General;%CodecID%", false); //encoded codecID
             nfoPart[13] = SoftWare(mi, $"{m4b} --Inform=Audio;%BitRate%", false); //encoded bitrate
@@ -55,7 +55,7 @@ namespace Workings
             catch
             {
                 nfoPart[11] = "125";
-                AlertError("Output Bitrate ERROR");
+                AlertError("nfo Output Bitrate ERROR");
             }
             nfoPart[14] = SoftWare(mi, $"{aax} --Inform=General;%Track_More%", false); //comment
 
@@ -147,6 +147,18 @@ Publisher's Summary
             Console.WriteLine("]");
         }
 
+        public static void CueClear()
+        {
+            if(File.Exists($"{AppDomain.CurrentDomain.BaseDirectory}src\\chapters.txt"))
+            {
+                File.Delete($"{AppDomain.CurrentDomain.BaseDirectory}src\\chapters.txt");
+            }
+            if (File.Exists($"{AppDomain.CurrentDomain.BaseDirectory}src\\chapters.cue"))
+            {
+                File.Delete($"{AppDomain.CurrentDomain.BaseDirectory}src\\chapters.cue");
+            }
+        }
+
         /*public static void cue(string m4b, string file) //UNTHREADED METHOD
         {
             Alert("Generating cue");
@@ -163,12 +175,13 @@ Publisher's Summary
         public static void cueGenTHR(string aax, string file) //THREADED METHOD
         {
             Alert("Generating cue");
+            CueClear();
             SoftWare($@"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffmpeg.exe", $" -i \"{aax}\" -c copy {AppDomain.CurrentDomain.BaseDirectory}src\\data\\temp.mkv -y", true);
             SoftWare($@"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\mkvextract.exe", $" {AppDomain.CurrentDomain.BaseDirectory}src\\data\\temp.mkv chapters -s {AppDomain.CurrentDomain.BaseDirectory}src\\data\\chapters.txt", true);
             File.Delete($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\temp.mkv");
             string cuegen = $"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\cuegen.vbs {AppDomain.CurrentDomain.BaseDirectory}src\\data\\chapters.txt";
             Process.Start(@"cmd", @"/c " + cuegen);
-            Thread.Sleep(360); // Give time for the conversion, thread suns over it otherwise. 360ms just to be sure
+            Thread.Sleep(360); // Give time for the conversion, thread suns over it otherwise. 360ms just to be sure, 1000 is advised
             string[] cue = File.ReadAllLines($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\chapters.cue");
             cue[0] = $"FILE \"{Path.GetFileName($"{file}.m4b")}\" MP4";
             File.WriteAllLines($"{file.Replace("\"", "")}.cue", cue);
