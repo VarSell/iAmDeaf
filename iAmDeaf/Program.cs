@@ -16,7 +16,7 @@ namespace Workings
     static class iAmDeaf
     {
         public const string mark = "iAmDeaf";
-        public const string version = "1.3";
+        public const string version = "1.4";
     }
 
     class Methods
@@ -122,18 +122,30 @@ Publisher's Summary
 
         public static void Alert(string alert)
         {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"[{alert}]");
+            Console.Write("  [");
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.Write($"{alert}");
             Console.ResetColor();
+            Console.WriteLine("]");
         }
 
         public static void AlertError(string alert)
         {
+            Console.Write("  [");
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"[{alert}]");
+            Console.Write($"{alert}");
             Console.ResetColor();
+            Console.WriteLine("]");
         }
 
+        public static void AlertSuccess(string alert)
+        {
+            Console.Write("  [");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write($"{alert}");
+            Console.ResetColor();
+            Console.WriteLine("]");
+        }
 
         /*public static void cue(string m4b, string file) //UNTHREADED METHOD
         {
@@ -156,10 +168,36 @@ Publisher's Summary
             File.Delete($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\temp.mkv");
             string cuegen = $"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\cuegen.vbs {AppDomain.CurrentDomain.BaseDirectory}src\\data\\chapters.txt";
             Process.Start(@"cmd", @"/c " + cuegen);
+            Thread.Sleep(360); // Give time for the conversion, thread suns over it otherwise. 360ms just to be sure
             string[] cue = File.ReadAllLines($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\chapters.cue");
             cue[0] = $"FILE \"{Path.GetFileName($"{file}.m4b")}\" MP4";
             File.WriteAllLines($"{file.Replace("\"", "")}.cue", cue);
+            if(!File.Exists($"{file.Replace("\"", "")}.cue"))
+            {
+                AlertError("cue ERROR");
+            }
+            else
+            {
+                AlertSuccess("cue SUCCESS");
+            }
         }
+
+        //THREADED METHOD (NEW)
+        public static void m4bMuxer(string bytes, string aax, string title, string comment, string file)
+        {
+            Alert("Muxing m4b");
+            SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffmpeg.exe", $"-activation_bytes {bytes} -i {aax} -metadata:g encoding_tool=\"{Workings.iAmDeaf.mark} {Workings.iAmDeaf.version}\" -metadata title=\"{title}\" -metadata comment=\"{comment}\" -c copy \"{file}.m4b\" -y", true);
+            if (!File.Exists($"{file}.m4b"))
+            {
+                AlertError("m4b ERROR");
+            }
+            else
+            {
+                AlertSuccess("m4b SUCCESS");
+            }
+        }
+
+
 
         public static string getBytes(string aax)
         {
@@ -238,12 +276,12 @@ namespace Main
                     aax = obj.ToString();
                     aax = $"\"{aax}\"";
                 }
-
-                /*if(!File.Exists(aax))
+                
+                if (!File.Exists(aax.Replace("\"", "")))
                 {
-                    Workings.Methods.AlertError("Invalid FilePath.");
+                    Workings.Methods.AlertError("Invalid filename.");
                     return 0;
-                }*/
+                }
             }
 
             else
@@ -252,17 +290,16 @@ namespace Main
                 return 0;
             }
 
+
             Workings.Methods.Alert("Parsing File");
-            
             string[] filename = Workings.Methods.MediaInfo(aax);
             string title = filename[0];
             filename[0] = filename[0].Trim().Replace(":", " -");
             string file = ($@"{filename[2]} [{filename[1]}] {filename[3]}");
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine(file);
+            Console.WriteLine($"  {file}");
             Console.ResetColor();
             string comment = filename[4].Trim();
-
             string bytes = Workings.Methods.getBytes(aax);
 
             //*** create AAX Host dir HERE before ffmpeg merge
@@ -271,11 +308,17 @@ namespace Main
             file = $"\"{hostDir}\\{filename[0]}\\{file.Trim()}";
             System.IO.Directory.CreateDirectory($"{hostDir}\\{filename[0]}");
 
-            Thread THR = new Thread(() => Workings.Methods.cueGenTHR($"{aax}", $"{file.Replace("\"", "")}"));
+            Thread THR = new Thread(() => Workings.Methods.cueGenTHR($"{aax.Replace("\"", "")}", $"{file.Replace("\"", "")}"));
+            Thread THR1 = new Thread(() => Workings.Methods.m4bMuxer(bytes, aax, title, comment, file.Replace("\"", "")));
             THR.Start();
+            THR1.Start();
 
-            Workings.Methods.Alert("Writing..");
+            THR1.Join();
+            //old unthreaded THR1
+            /*Workings.Methods.Alert("Muxing m4b");
             Workings.Methods.SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffmpeg.exe", $"-activation_bytes {bytes} -i {aax} -metadata:g encoding_tool=\"{Workings.iAmDeaf.mark} {Workings.iAmDeaf.version}\" -metadata title=\"{title}\" -metadata comment=\"{comment}\" -c copy {file}.m4b\" -y", true);
+            */
+
 
             Workings.Methods.Alert("Extracting jpg");
             Workings.Methods.SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffmpeg.exe", $"-i {aax} -map 0:v -map -0:V -c copy {file}.jpg\" -y", true);
