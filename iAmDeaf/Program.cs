@@ -206,12 +206,26 @@ Publisher's Summary
 
         public static string getBytes(string aax)
         {
+            string currentSum = $"{root}\\src\\data\\checksum.txt";
+            string cacheSum = File.ReadAllText(currentSum);
+            string cacheBytes = $"{root}src\\data\\bytes.txt";
             string checksum = SoftWare($@"{root}src\\tools\\ffprobe.exe", $"{aax}", true);
-            File.WriteAllText($"{root}src\\data\\checksum.txt", checksum.Replace(" ", ""));
-            string[] line = File.ReadAllLines($"{root}src\\data\\checksum.txt");
+            File.WriteAllText(currentSum, checksum.Replace(" ", ""));
+            string[] line = File.ReadAllLines(currentSum);
             checksum = (line[11].Split("==").Last());
+            File.WriteAllText(currentSum, checksum);
 
             Alert($"Checksum: {checksum}");
+
+            
+
+
+            if (cacheSum == checksum)
+            {
+                Alert("Checksum Match");
+                Alert("Using cacheBytes");
+                return File.ReadAllText(cacheBytes);
+            }
 
             /*
              * Just as a reminder, this is where current dir is changed, as rcrack doesnt like to be launched when it's not in its root dir
@@ -219,10 +233,10 @@ Publisher's Summary
 
             Directory.SetCurrentDirectory($"{root}src\\tables");
             string bytes = SoftWare($"rcrack.exe", $" . -h {checksum}", false);
-            File.WriteAllText($"{root}src\\data\\bytes.txt", bytes.Replace(" ", ""));
-            line = File.ReadAllLines($"{root}src\\data\\bytes.txt");
+            File.WriteAllText(cacheBytes, bytes.Replace(" ", ""));
+            line = File.ReadAllLines(cacheBytes);
             bytes = (line[32].Split("hex:").Last());
-            File.WriteAllText($"{root}src\\data\\bytes.txt", bytes);
+            File.WriteAllText(cacheBytes, bytes);
             Alert($"ActBytes: {bytes}");
             return bytes;
         }
