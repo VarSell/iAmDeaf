@@ -16,17 +16,18 @@ namespace Workings
     static class iAmDeaf
     {
         public const string mark = "iAmDeaf";
-        public const string version = "1.4.2";
+        public const string version = "1.4.1";
     }
 
     class Methods
     {
+        public static string root = AppDomain.CurrentDomain.BaseDirectory.ToString();
         public static string nfo(string aax, string m4b)
         {
             string[] nfoPart = new string[15];
             try
             {
-                string mi = $"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\mediainfo.exe";
+                string mi = $"{root}src\\tools\\mediainfo.exe";
                 nfoPart[0] = SoftWare(mi, $"{aax} --Inform=General;%Album%", false); //Title
                 nfoPart[1] = SoftWare(mi, $"{aax} --Inform=General;%Performer%", false); //Author
                 nfoPart[2] = SoftWare(mi, $"{aax} --Inform=General;%nrt%", false); //Narrator
@@ -99,7 +100,7 @@ Publisher's Summary
 
         public static string[] MediaInfo(string aax)
         {
-            string mi = $"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\mediainfo.exe";
+            string mi = $"{root}src\\tools\\mediainfo.exe";
             string[] info = new string[5];
 
             info[0] = SoftWare(mi, $"{aax} --Inform=General;%Album%", false);
@@ -154,13 +155,13 @@ Publisher's Summary
 
         public static void CueClear()
         {
-            if(File.Exists($"{AppDomain.CurrentDomain.BaseDirectory}src\\chapters.txt"))
+            if (File.Exists($"{root}src\\chapters.txt"))
             {
-                File.Delete($"{AppDomain.CurrentDomain.BaseDirectory}src\\chapters.txt");
+                File.Delete($"{root}src\\chapters.txt");
             }
-            if (File.Exists($"{AppDomain.CurrentDomain.BaseDirectory}src\\chapters.cue"))
+            if (File.Exists($"{root}src\\chapters.cue"))
             {
-                File.Delete($"{AppDomain.CurrentDomain.BaseDirectory}src\\chapters.cue");
+                File.Delete($"{root}src\\chapters.cue");
             }
         }
 
@@ -168,16 +169,16 @@ Publisher's Summary
         {
             Alert("Generating cue");
             CueClear();
-            SoftWare($@"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffmpeg.exe", $" -i \"{aax}\" -c copy {AppDomain.CurrentDomain.BaseDirectory}src\\data\\temp.mkv -y", true);
-            SoftWare($@"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\mkvextract.exe", $" {AppDomain.CurrentDomain.BaseDirectory}src\\data\\temp.mkv chapters -s {AppDomain.CurrentDomain.BaseDirectory}src\\data\\chapters.txt", true);
-            File.Delete($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\temp.mkv");
-            string cuegen = $"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\cuegen.vbs {AppDomain.CurrentDomain.BaseDirectory}src\\data\\chapters.txt";
+            SoftWare($@"{root}src\\tools\\ffmpeg.exe", $" -i \"{aax}\" -c copy {root}src\\data\\temp.mkv -y", true);
+            SoftWare($@"{root}src\\tools\\mkvextract.exe", $" {root}src\\data\\temp.mkv chapters -s {root}src\\data\\chapters.txt", true);
+            File.Delete($"{root}src\\data\\temp.mkv");
+            string cuegen = $"{root}src\\tools\\cuegen.vbs {root}src\\data\\chapters.txt";
             Process.Start(@"cmd", @"/c " + cuegen);
             Thread.Sleep(700); //1000 is advised
-            string[] cue = File.ReadAllLines($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\chapters.cue");
+            string[] cue = File.ReadAllLines($"{root}src\\data\\chapters.cue");
             cue[0] = $"FILE \"{Path.GetFileName($"{file}.m4b")}\" MP4";
             File.WriteAllLines($"{file.Replace("\"", "")}.cue", cue);
-            if(!File.Exists($"{file.Replace("\"", "")}.cue"))
+            if (!File.Exists($"{file.Replace("\"", "")}.cue"))
             {
                 AlertError("cue ERROR");
             }
@@ -190,7 +191,7 @@ Publisher's Summary
         public static void m4bMuxer(string bytes, string aax, string title, string comment, string file)
         {
             Alert("Muxing m4b");
-            SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffmpeg.exe", $"-activation_bytes {bytes} -i {aax} -metadata:g encoding_tool=\"{Workings.iAmDeaf.mark} {Workings.iAmDeaf.version}\" -metadata title=\"{title}\" -metadata comment=\"{comment}\" -c copy \"{file}.m4b\" -y", true);
+            SoftWare($"{root}src\\tools\\ffmpeg.exe", $"-activation_bytes {bytes} -i {aax} -metadata:g encoding_tool=\"{Workings.iAmDeaf.mark} {Workings.iAmDeaf.version}\" -metadata title=\"{title}\" -metadata comment=\"{comment}\" -c copy \"{file}.m4b\" -y", true);
             if (!File.Exists($"{file}.m4b"))
             {
                 AlertError("m4b ERROR");
@@ -205,9 +206,9 @@ Publisher's Summary
 
         public static string getBytes(string aax)
         {
-            string checksum = SoftWare($@"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffprobe.exe", $"{aax}", true);
-            File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\checksum.txt", checksum.Replace(" ", ""));
-            string[] line = File.ReadAllLines($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\checksum.txt");
+            string checksum = SoftWare($@"{root}src\\tools\\ffprobe.exe", $"{aax}", true);
+            File.WriteAllText($"{root}src\\data\\checksum.txt", checksum.Replace(" ", ""));
+            string[] line = File.ReadAllLines($"{root}src\\data\\checksum.txt");
             checksum = (line[11].Split("==").Last());
 
             Alert($"Checksum: {checksum}");
@@ -216,12 +217,12 @@ Publisher's Summary
              * Just as a reminder, this is where current dir is changed, as rcrack doesnt like to be launched when it's not in its root dir
              */
 
-            Directory.SetCurrentDirectory($"{AppDomain.CurrentDomain.BaseDirectory}src\\tables");
+            Directory.SetCurrentDirectory($"{root}src\\tables");
             string bytes = SoftWare($"rcrack.exe", $" . -h {checksum}", false);
-            File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\bytes.txt", bytes.Replace(" ", ""));
-            line = File.ReadAllLines($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\bytes.txt");
+            File.WriteAllText($"{root}src\\data\\bytes.txt", bytes.Replace(" ", ""));
+            line = File.ReadAllLines($"{root}src\\data\\bytes.txt");
             bytes = (line[32].Split("hex:").Last());
-            File.WriteAllText($"{AppDomain.CurrentDomain.BaseDirectory}src\\data\\bytes.txt", bytes);
+            File.WriteAllText($"{root}src\\data\\bytes.txt", bytes);
             Alert($"ActBytes: {bytes}");
             return bytes;
         }
@@ -268,6 +269,8 @@ namespace Main
 {
     class Program
     {
+        public static string root = AppDomain.CurrentDomain.BaseDirectory.ToString();
+
         static int Main(string[] args)
         {
             string aax = null;
@@ -294,6 +297,7 @@ namespace Main
                 return 0;
             }
 
+            
             string[] filename;
             string comment;
             string title;
@@ -316,14 +320,14 @@ namespace Main
             }
             catch (Exception ex)
             {
-                string info = Workings.Methods.SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%Album%", false);
+                string info = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%Album%", false);
                 title = info;
                 info =info.Trim().Replace(":", " -");
                 file = info;
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"  {file}");
                 Console.ResetColor();
-                comment = Workings.Methods.SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%Track_More%", false);
+                comment = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%Track_More%", false);
                 file = $"\"{hostDir}\\{info}\\{file.Trim()}";
                 System.IO.Directory.CreateDirectory($"{hostDir}\\{info}");
 
@@ -340,7 +344,7 @@ namespace Main
             THR1.Join();
 
             Workings.Methods.Alert("Extracting jpg");
-            Workings.Methods.SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\ffmpeg.exe", $"-i {aax} -map 0:v -map -0:V -c copy {file}.jpg\" -y", true);
+            Workings.Methods.SoftWare($"{root}src\\tools\\ffmpeg.exe", $"-i {aax} -map 0:v -map -0:V -c copy {file}.jpg\" -y", true);
             string nfo = Workings.Methods.nfo(aax, $"{file}.m4b\"");
 
             
