@@ -242,22 +242,23 @@ Publisher's Summary
         }
 
         //paused till i understand what im doing
-        public static void Loading(string aax, string m4b)
+        public static void Monitor(string m4b)
         {
-            FileInfo fileinfo = new FileInfo(aax);
             m4b = String.Concat(m4b, ".m4b");
-            float percentAll = (float)fileinfo.Length / 1000000;
-            float percent = percentAll / 100;
-            float percentTotal = 0;
-            float buffer;
+            decimal buffer;
             Thread.Sleep(100);
-            while (percentTotal <= percentAll)
+            while (true)
             {
-                buffer = (float)new System.IO.FileInfo(m4b).Length;
-                percentTotal = percentTotal + buffer;
-                Console.WriteLine($"{percentTotal/1000000}%");
+                buffer = (decimal)new System.IO.FileInfo(m4b).Length;
+                Console.Write($"  {Decimal.Round(buffer / 1000000, 2)} MB");
+                Console.Write("\r");
+                Thread.Sleep(112);
+                if (buffer == (new System.IO.FileInfo(m4b).Length))
+                {
+                    Console.WriteLine($"  {Decimal.Round(buffer / 1000000, 2)} MB");
+                    break;
+                }
             }
-            Console.WriteLine("ECIT");
         }
 
 
@@ -306,6 +307,7 @@ namespace Main
 
         static int Main(string[] args)
         {
+            Console.CursorVisible = false;
             string aax = null;
 
             if (args.Length > 0)
@@ -370,7 +372,7 @@ namespace Main
             
             string bytes = Workings.Methods.getBytes(aax);
 
-            //Thread buffer = new Thread(() => Workings.Methods.Loading(aax.Replace("\"", ""), file.Replace("\"", "")));
+            Thread buffer = new Thread(() => Workings.Methods.Monitor(file.Replace("\"", "")));
             
             Thread THR = new Thread(() => Workings.Methods.cueGenTHR($"{aax.Replace("\"", "")}", $"{file.Replace("\"", "")}"));
             Thread THR1 = new Thread(() => Workings.Methods.m4bMuxer(bytes, aax, title, comment.Replace("\"", ""), file.Replace("\"", "")));
@@ -378,8 +380,8 @@ namespace Main
             THR.Start();
             Workings.Methods.Alert("Muxing m4b");
             THR1.Start();
-            //buffer.Start();
-            //buffer.Join();
+            buffer.Start();
+            buffer.Join();
 
             THR1.Join();
 
