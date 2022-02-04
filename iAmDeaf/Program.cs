@@ -201,6 +201,10 @@ Publisher's Summary
         public static string getBytes(string aax)
         {
             string currentSum = $"{root}\\src\\data\\checksum.txt";
+            if (!File.Exists(currentSum))
+            {
+                File.Create(currentSum).Dispose();
+            }
             string cacheSum = File.ReadAllText(currentSum);
             string cacheBytes = $"{root}src\\data\\bytes.txt";
             string checksum = SoftWare($@"{root}src\\tools\\ffprobe.exe", $"{aax}", true);
@@ -239,7 +243,7 @@ Publisher's Summary
         {
             m4b = String.Concat(m4b, ".m4b");
             decimal buffer;
-            Thread.Sleep(100);
+            Thread.Sleep(700);
             while (true)
             {
                 buffer = (decimal)new System.IO.FileInfo(m4b).Length;
