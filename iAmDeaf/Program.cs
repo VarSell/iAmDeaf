@@ -94,7 +94,6 @@ Publisher's Summary
 ===================
 {nfoPart[14].Trim()}
 ";
-
             return nfo;
         }
 
@@ -102,7 +101,6 @@ Publisher's Summary
         {
             string mi = $"{root}src\\tools\\mediainfo.exe";
             string[] info = new string[5];
-
             info[0] = SoftWare(mi, $"{aax} --Inform=General;%Album%", false);
             info[1] = info[0].Split(",").Last().Trim();
             info[2] = info[0].Replace(info[1], null).Replace(",", null).Split(":").Last().Trim();
@@ -165,9 +163,8 @@ Publisher's Summary
             }
         }
 
-        public static void cueGenTHR(string aax, string file) //THREADED METHOD
+        public static void cueGenTHR(string aax, string file)
         {
-            //Alert("Generating cue");
             CueClear();
             SoftWare($@"{root}src\\tools\\ffmpeg.exe", $" -i \"{aax}\" -c copy {root}src\\data\\temp.mkv -y", true);
             SoftWare($@"{root}src\\tools\\mkvextract.exe", $" {root}src\\data\\temp.mkv chapters -s {root}src\\data\\chapters.txt", true);
@@ -180,29 +177,26 @@ Publisher's Summary
             File.WriteAllLines($"{file.Replace("\"", "")}.cue", cue);
             if (!File.Exists($"{file.Replace("\"", "")}.cue"))
             {
-                AlertError("cue ERROR");
+                AlertError("CUE Error");
             }
             else
             {
-                AlertSuccess("cue SUCCESS");
+                AlertSuccess("CUE Success");
             }
         }
 
         public static void m4bMuxer(string bytes, string aax, string title, string comment, string file)
         {
-            //Alert("Muxing m4b");
             SoftWare($"{root}src\\tools\\ffmpeg.exe", $"-activation_bytes {bytes} -i {aax} -metadata:g encoding_tool=\"{Workings.iAmDeaf.mark} {Workings.iAmDeaf.version}\" -metadata title=\"{title}\" -metadata comment=\"{comment}\" -c copy \"{file}.m4b\" -y", true);
             if (!File.Exists($"{file}.m4b"))
             {
-                AlertError("m4b ERROR");
+                AlertError("M4B Error");
             }
             else
             {
-                AlertSuccess("m4b SUCCESS");
+                AlertSuccess("M4B Success");
             }
         }
-
-
 
         public static string getBytes(string aax)
         {
@@ -223,7 +217,7 @@ Publisher's Summary
             if (cacheSum == checksum)
             {
                 Alert("Checksum Match");
-                Alert("Using cacheBytes");
+                Alert("Using Cached Bytes");
                 return File.ReadAllText(cacheBytes);
             }
 
@@ -237,11 +231,10 @@ Publisher's Summary
             line = File.ReadAllLines(cacheBytes);
             bytes = (line[32].Split("hex:").Last());
             File.WriteAllText(cacheBytes, bytes);
-            Alert($"ActBytes: {bytes}");
+            Alert($"Bytes: {bytes}");
             return bytes;
         }
 
-        //paused till i understand what im doing
         public static void Monitor(string m4b)
         {
             m4b = String.Concat(m4b, ".m4b");
@@ -252,16 +245,14 @@ Publisher's Summary
                 buffer = (decimal)new System.IO.FileInfo(m4b).Length;
                 Console.Write($"  {Decimal.Round(buffer / 1000000, 2)} MB");
                 Console.Write("\r");
-                Thread.Sleep(112);
+                Thread.Sleep(78);
                 if (buffer == (new System.IO.FileInfo(m4b).Length))
                 {
-                    Console.WriteLine($"  {Decimal.Round(buffer / 1000000, 2)} MB");
+                    AlertSuccess($"{Decimal.Round(buffer / 1000000, 2)} MB");
                     break;
                 }
             }
         }
-
-
 
         public static string SoftWare(string software, string arguments, bool std)
         {
@@ -333,8 +324,6 @@ namespace Main
                 return 0;
             }
 
-            
-
             string[] filename;
             string comment;
             string title;
@@ -348,9 +337,10 @@ namespace Main
                 title = filename[0];
                 filename[0] = filename[0].Trim().Replace(":", " -");
                 file = ($@"{filename[2]} [{filename[1]}] {filename[3]}");
-                Console.ForegroundColor = ConsoleColor.Green;
+                /*Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"  {file}");
-                Console.ResetColor();
+                Console.ResetColor();*/
+                Workings.Methods.AlertSuccess(file.Trim());
                 comment = filename[4].Trim();
                 file = $"\"{hostDir}\\{filename[0]}\\{file.Trim()}";
                 System.IO.Directory.CreateDirectory($"{hostDir}\\{filename[0]}");
@@ -367,32 +357,30 @@ namespace Main
                 comment = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%Track_More%", false);
                 file = $"\"{hostDir}\\{info}\\{file.Trim()}";
                 System.IO.Directory.CreateDirectory($"{hostDir}\\{info}");
-
             }
             
             string bytes = Workings.Methods.getBytes(aax);
 
             Thread buffer = new Thread(() => Workings.Methods.Monitor(file.Replace("\"", "")));
-            
             Thread THR = new Thread(() => Workings.Methods.cueGenTHR($"{aax.Replace("\"", "")}", $"{file.Replace("\"", "")}"));
             Thread THR1 = new Thread(() => Workings.Methods.m4bMuxer(bytes, aax, title, comment.Replace("\"", ""), file.Replace("\"", "")));
-            Workings.Methods.Alert("Generating cue");
+
+            Workings.Methods.Alert("Generating CUE");
             THR.Start();
-            Workings.Methods.Alert("Muxing m4b");
+            Workings.Methods.Alert("Muxing M4B");
             THR1.Start();
             buffer.Start();
             buffer.Join();
 
             THR1.Join();
 
-            Workings.Methods.Alert("Extracting jpg");
+            Workings.Methods.Alert("Extracting JPG");
             Workings.Methods.SoftWare($"{root}src\\tools\\ffmpeg.exe", $"-i {aax} -map 0:v -map -0:V -c copy {file}.jpg\" -y", true);
             string nfo = Workings.Methods.nfo(aax, $"{file}.m4b\"");
 
-            
             THR.Join();
 
-            Workings.Methods.Alert("Generating nfo");
+            Workings.Methods.Alert("Generating NFO");
             File.WriteAllText(($"{file}.nfo\"").Replace("\"", ""), nfo, Encoding.UTF8);
 
             return 0;
