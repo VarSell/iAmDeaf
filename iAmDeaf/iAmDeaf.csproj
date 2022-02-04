@@ -5,11 +5,16 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <ApplicationIcon>powershell-icon-17212-Windows.ico</ApplicationIcon>
+    <ApplicationIcon>302526_data_file_icon.ico</ApplicationIcon>
+    <SignAssembly>False</SignAssembly>
+    <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
+    <ErrorReport>none</ErrorReport>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <PackageIcon>302526_data_file_icon.ico</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="powershell-icon-17212-Windows.ico" />
+    <Content Include="302526_data_file_icon.ico" />
   </ItemGroup>
 
 </Project>

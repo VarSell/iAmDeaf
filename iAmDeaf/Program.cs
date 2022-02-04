@@ -130,7 +130,7 @@ Publisher's Summary
         {
             Console.Write("  [");
             Console.ForegroundColor = ConsoleColor.DarkCyan;
-            Console.Write($"{alert}");
+            Console.Write(alert);
             Console.ResetColor();
             Console.WriteLine("]");
         }
@@ -139,7 +139,7 @@ Publisher's Summary
         {
             Console.Write("  [");
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write($"{alert}");
+            Console.Write(alert);
             Console.ResetColor();
             Console.WriteLine("]");
         }
@@ -148,7 +148,7 @@ Publisher's Summary
         {
             Console.Write("  [");
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write($"{alert}");
+            Console.Write(alert);
             Console.ResetColor();
             Console.WriteLine("]");
         }
@@ -167,7 +167,7 @@ Publisher's Summary
 
         public static void cueGenTHR(string aax, string file) //THREADED METHOD
         {
-            Alert("Generating cue");
+            //Alert("Generating cue");
             CueClear();
             SoftWare($@"{root}src\\tools\\ffmpeg.exe", $" -i \"{aax}\" -c copy {root}src\\data\\temp.mkv -y", true);
             SoftWare($@"{root}src\\tools\\mkvextract.exe", $" {root}src\\data\\temp.mkv chapters -s {root}src\\data\\chapters.txt", true);
@@ -190,7 +190,7 @@ Publisher's Summary
 
         public static void m4bMuxer(string bytes, string aax, string title, string comment, string file)
         {
-            Alert("Muxing m4b");
+            //Alert("Muxing m4b");
             SoftWare($"{root}src\\tools\\ffmpeg.exe", $"-activation_bytes {bytes} -i {aax} -metadata:g encoding_tool=\"{Workings.iAmDeaf.mark} {Workings.iAmDeaf.version}\" -metadata title=\"{title}\" -metadata comment=\"{comment}\" -c copy \"{file}.m4b\" -y", true);
             if (!File.Exists($"{file}.m4b"))
             {
@@ -239,6 +239,25 @@ Publisher's Summary
             File.WriteAllText(cacheBytes, bytes);
             Alert($"ActBytes: {bytes}");
             return bytes;
+        }
+
+        //paused till i understand what im doing
+        public static void Loading(string aax, string m4b)
+        {
+            FileInfo fileinfo = new FileInfo(aax);
+            m4b = String.Concat(m4b, ".m4b");
+            float percentAll = (float)fileinfo.Length / 1000000;
+            float percent = percentAll / 100;
+            float percentTotal = 0;
+            float buffer;
+            Thread.Sleep(100);
+            while (percentTotal <= percentAll)
+            {
+                buffer = (float)new System.IO.FileInfo(m4b).Length;
+                percentTotal = percentTotal + buffer;
+                Console.WriteLine($"{percentTotal/1000000}%");
+            }
+            Console.WriteLine("ECIT");
         }
 
 
@@ -295,6 +314,7 @@ namespace Main
                 foreach (Object obj in args)
                 {
                     aax = obj.ToString();
+
                     aax = $"\"{aax}\"";
                 }
                 
@@ -312,6 +332,7 @@ namespace Main
             }
 
             
+
             string[] filename;
             string comment;
             string title;
@@ -349,11 +370,16 @@ namespace Main
             
             string bytes = Workings.Methods.getBytes(aax);
 
-
+            //Thread buffer = new Thread(() => Workings.Methods.Loading(aax.Replace("\"", ""), file.Replace("\"", "")));
+            
             Thread THR = new Thread(() => Workings.Methods.cueGenTHR($"{aax.Replace("\"", "")}", $"{file.Replace("\"", "")}"));
-            Thread THR1 = new Thread(() => Workings.Methods.m4bMuxer(bytes, aax, title, comment, file.Replace("\"", "")));
+            Thread THR1 = new Thread(() => Workings.Methods.m4bMuxer(bytes, aax, title, comment.Replace("\"", ""), file.Replace("\"", "")));
+            Workings.Methods.Alert("Generating cue");
             THR.Start();
+            Workings.Methods.Alert("Muxing m4b");
             THR1.Start();
+            //buffer.Start();
+            //buffer.Join();
 
             THR1.Join();
 
