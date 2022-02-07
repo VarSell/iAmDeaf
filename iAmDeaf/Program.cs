@@ -123,7 +123,7 @@ Publisher's Summary
             }
             return info;
         }
-        
+
         public static void Alert(string alert)
         {
             Console.Write("  [");
@@ -170,8 +170,8 @@ Publisher's Summary
             SoftWare($@"{root}src\\tools\\mkvextract.exe", $" {root}src\\data\\temp.mkv chapters -s {root}src\\data\\chapters.txt", true);
             File.Delete($"{root}src\\data\\temp.mkv");
             string cuegen = $"{root}src\\tools\\cuegen.vbs {root}src\\data\\chapters.txt";
-            Process.Start(@"cmd", @"/c " + cuegen);
-            Thread.Sleep(700); //1000 is advised
+            var CUEGEN = Process.Start(@"cmd", @"/c " + cuegen);
+            CUEGEN.WaitForExit();
             string[] cue = File.ReadAllLines($"{root}src\\data\\chapters.cue");
             cue[0] = $"FILE \"{Path.GetFileName($"{file}.m4b")}\" MP4";
             File.WriteAllLines($"{file.Replace("\"", "")}.cue", cue);
@@ -215,9 +215,6 @@ Publisher's Summary
 
             Alert($"Checksum: {checksum}");
 
-            
-
-
             if (cacheSum == checksum)
             {
                 Alert("Checksum Match");
@@ -243,7 +240,8 @@ Publisher's Summary
         {
             m4b = String.Concat(m4b, ".m4b");
             decimal buffer;
-            Thread.Sleep(700);
+            Thread.Sleep(1000);
+
             while (true)
             {
                 buffer = (decimal)new System.IO.FileInfo(m4b).Length;
@@ -296,6 +294,9 @@ Publisher's Summary
 
 namespace Main
 {
+    using System.Reflection;
+
+
     class Program
     {
         public static string root = AppDomain.CurrentDomain.BaseDirectory.ToString();
@@ -304,6 +305,9 @@ namespace Main
         {
             Console.CursorVisible = false;
             string aax = null;
+
+
+
 
             if (args.Length > 0)
             {
@@ -314,7 +318,7 @@ namespace Main
 
                     aax = $"\"{aax}\"";
                 }
-                
+
                 if (!File.Exists(aax.Replace("\"", "")))
                 {
                     Workings.Methods.AlertError("Invalid filename.");
@@ -341,9 +345,6 @@ namespace Main
                 title = filename[0];
                 filename[0] = filename[0].Trim().Replace(":", " -");
                 file = ($@"{filename[2]} [{filename[1]}] {filename[3]}");
-                /*Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"  {file}");
-                Console.ResetColor();*/
                 Workings.Methods.AlertSuccess(file.Trim());
                 comment = filename[4].Trim();
                 file = $"\"{hostDir}\\{filename[0]}\\{file.Trim()}";
@@ -353,7 +354,7 @@ namespace Main
             {
                 string info = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%Album%", false);
                 title = info;
-                info =info.Trim().Replace(":", " -");
+                info = info.Trim().Replace(":", " -");
                 file = info;
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"  {file}");
@@ -362,7 +363,7 @@ namespace Main
                 file = $"\"{hostDir}\\{info}\\{file.Trim()}";
                 System.IO.Directory.CreateDirectory($"{hostDir}\\{info}");
             }
-            
+
             string bytes = Workings.Methods.getBytes(aax);
 
             Thread buffer = new Thread(() => Workings.Methods.Monitor(file.Replace("\"", "")));
