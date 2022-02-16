@@ -355,6 +355,7 @@ namespace Main
                     string Author = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%Performer%", false).Trim();                                      //Author
                     string Title = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%Album%", false).Trim().Replace(":", " -");                        //Title
                     string Year = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%rldt%", false).Trim();                                             //Year
+                    Year = DateTime.ParseExact(Year, "dd-MMM-yyyy", CultureInfo.InvariantCulture).ToString("yyyy");
                     string Narrator = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%nrt%", false).Trim();                                          //Narrator
                     string Bitrate = (Int32.Parse(Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=Audio;%BitRate%", false).Trim()) / 1024).ToString() + "K";  //Bitrate            //Bitrate
 
