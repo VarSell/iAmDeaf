@@ -19,7 +19,35 @@ namespace Workings
         public const string mark = "iAmDeaf";
         public const string version = "1.4.1";
     }
+    class Alert
+    {
+        public static void Notify(string alert)
+        {
+            Console.Write("  [");
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.Write(alert);
+            Console.ResetColor();
+            Console.WriteLine("]");
+        }
 
+        public static void Error(string alert)
+        {
+            Console.Write("  [Error: ");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write(alert);
+            Console.ResetColor();
+            Console.WriteLine("]");
+        }
+
+        public static void Success(string alert)
+        {
+            Console.Write("  [");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write(alert);
+            Console.ResetColor();
+            Console.WriteLine("]");
+        }
+    }
     class Methods
     {
         public static string root = AppDomain.CurrentDomain.BaseDirectory.ToString();
@@ -43,30 +71,29 @@ namespace Workings
                 nfoPart[11] = SoftWare(mi, $"{m4b} --Inform=Audio;%BitRate%", false).Trim();    //source bitrate
                 try
                 {
-                    nfoPart[11] = (Int32.Parse(nfoPart[11]) / 1024).ToString();
+                    nfoPart[11] = (Int32.Parse(nfoPart[11]) / 1000).ToString();
                 }
                 catch
                 {
                     nfoPart[11] = "NULL";
-                    AlertError("nfo Source Bitrate ERROR");
+                    Alert.Error("Failed Getting Source BitRate");
                 }
                 nfoPart[12] = SoftWare(mi, $"{m4b} --Inform=General;%CodecID%", false); //encoded codecID
                 nfoPart[13] = SoftWare(mi, $"{m4b} --Inform=Audio;%BitRate%", false);   //encoded bitrate
                 try
                 {
-                    nfoPart[13] = (Int32.Parse(nfoPart[13]) / 1024).ToString();
+                    nfoPart[13] = (Int32.Parse(nfoPart[13]) / 1000).ToString();
                 }
                 catch
                 {
                     nfoPart[11] = "NULL";
-                    AlertError("nfo Output Bitrate ERROR");
+                    Alert.Error("Failed Getting Output Bitrate");
                 }
                 nfoPart[14] = SoftWare(mi, $"{aax} --Inform=General;%Track_More%", false); //comment (Track_More)
             }
             catch (Exception ex)
             {
-                AlertError("nfo ERROR");
-                AlertError(ex.Message);
+                Alert.Error($"NFO Failed: {ex.Message}");
             }
 
             string nfo = @$"General Information
@@ -100,6 +127,7 @@ Publisher's Summary
 
         public static string[] MediaInfo(string aax)
         {
+            aax = String.Concat("\"", aax, "\"");
             string mi = $"{root}src\\tools\\mediainfo.exe";
             string[] info = new string[5];
             info[0] = SoftWare(mi, $"{aax} --Inform=General;%Album%", false);
@@ -114,42 +142,12 @@ Publisher's Summary
                 info[1] = info[1].Replace("Volume", "Volume ");
             }
 
-            if (info[1].Length > 1) //maybe change to !> 1, to shorten it
-            {
-                info[1] = info[1];
-            }
-            else
+            if (info[1].Length < 2)
             {
                 info[1] = String.Concat("0", info[1]);
             }
+
             return info;
-        }
-
-        public static void Alert(string alert)
-        {
-            Console.Write("  [");
-            Console.ForegroundColor = ConsoleColor.DarkCyan;
-            Console.Write(alert);
-            Console.ResetColor();
-            Console.WriteLine("]");
-        }
-
-        public static void AlertError(string alert)
-        {
-            Console.Write("  [");
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write(alert);
-            Console.ResetColor();
-            Console.WriteLine("]");
-        }
-
-        public static void AlertSuccess(string alert)
-        {
-            Console.Write("  [");
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write(alert);
-            Console.ResetColor();
-            Console.WriteLine("]");
         }
 
         public static void CueClear()
@@ -175,14 +173,14 @@ Publisher's Summary
             CUEGEN.WaitForExit();
             string[] cue = File.ReadAllLines($"{root}src\\data\\chapters.cue");
             cue[0] = $"FILE \"{Path.GetFileName($"{file}.m4b")}\" MP4";
-            File.WriteAllLines($"{file.Replace("\"", "")}.cue", cue);
-            if (!File.Exists($"{file.Replace("\"", "")}.cue"))
+            File.WriteAllLines($"{file}.cue", cue);
+            if (!File.Exists($"{file}.cue"))
             {
-                AlertError("CUE Error");
+                Alert.Error("CUE Failed");
             }
             else
             {
-                AlertSuccess("CUE Success");
+                Alert.Success("CUE Created");
             }
         }
 
@@ -192,14 +190,14 @@ Publisher's Summary
             SoftWare($"{root}src\\tools\\ffmpeg.exe", $" -activation_bytes {bytes} -i {aax} -metadata:g encoding_tool=\"{Workings.iAmDeaf.mark} {Workings.iAmDeaf.version}\" -metadata title=\"{title}\" -metadata comment=\"{comment}\" -c copy \"{file}.m4b\" -y", true);
             if (!File.Exists($"{file}.m4b"))
             {
-                AlertError("M4B Error");
+                Timer.Stop();
+                Alert.Error("M4B Creation failed");
             }
             else
             {
-                AlertSuccess("M4B Success");
+                Timer.Stop();
+                Alert.Success($"M4B Created in {Timer.ElapsedMilliseconds / 1000}s");
             }
-            Timer.Stop();
-            AlertSuccess($"Execution: {Timer.ElapsedMilliseconds / 1000} s");
         }
 
         public static string getBytes(string aax)
@@ -217,12 +215,12 @@ Publisher's Summary
             checksum = (line[11].Split("==").Last());
             File.WriteAllText(currentSum, checksum);
 
-            Alert($"Checksum: {checksum}");
+            Alert.Notify($"Checksum: {checksum}");
 
             if (cacheSum == checksum)
             {
-                Alert("Checksum Match");
-                Alert("Using Cached Bytes");
+                Alert.Notify("Checksum Match");
+                Alert.Notify("Using Cached Bytes");
                 return File.ReadAllText(cacheBytes);
             }
 
@@ -236,7 +234,7 @@ Publisher's Summary
             line = File.ReadAllLines(cacheBytes);
             bytes = (line[32].Split("hex:").Last());
             File.WriteAllText(cacheBytes, bytes);
-            Alert($"Bytes: {bytes}");
+            Alert.Notify($"Act. Bytes: {bytes}");
             return bytes;
         }
 
@@ -254,7 +252,7 @@ Publisher's Summary
                 Thread.Sleep(78);
                 if (buffer == (new System.IO.FileInfo(m4b).Length))
                 {
-                    AlertSuccess($"{Decimal.Round(buffer / 1000000, 2)} MB");
+                    Alert.Success($"File size of {Decimal.Round(buffer / 1000000, 2)} MB");
                     break;
                 }
             }
@@ -298,7 +296,7 @@ Publisher's Summary
 
 namespace Main
 {
-
+    using Workings;
     class Program
     {
         public static string root = AppDomain.CurrentDomain.BaseDirectory.ToString();
@@ -306,7 +304,7 @@ namespace Main
         static int Main(string[] args)
         {
             Console.CursorVisible = false;
-            string aax = null;
+            string aax = string.Empty;
 
             if (args.Length > 0)
             {
@@ -314,29 +312,25 @@ namespace Main
                 foreach (Object obj in args)
                 {
                     aax = obj.ToString();
-
-                    aax = $"\"{aax}\"";
                 }
 
-                if (!File.Exists(aax.Replace("\"", "")))
+                if (!File.Exists(aax))
                 {
-                    Workings.Methods.AlertError("Invalid filename.");
+                    Alert.Error("Invalid filename.");
                     return 0;
                 }
             }
 
             else
             {
-                Workings.Methods.AlertError("No args provided.");
+                Alert.Error("No args provided.");
                 return 0;
             }
 
             string[] filename;
-            string comment;
-            string title;
-            string file;
-            string hostDir = Path.GetDirectoryName(aax).Replace("\"", "");
-            Workings.Methods.Alert("Parsing File");
+            string comment, title, file = string.Empty;
+            string hostDir = Path.GetDirectoryName(aax);
+            Alert.Notify("Parsing File");
 
 
             //Parsing of Json nomanclature.json settings
@@ -352,12 +346,12 @@ namespace Main
             {
                 if (result.DEFAULT == true)
                 {
-                    string Author = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%Performer%", false).Trim();                                      //Author
-                    string Title = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%Album%", false).Trim().Replace(":", " -");                        //Title
-                    string Year = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%rldt%", false).Trim();                                             //Year
+                    string Author = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Performer%", false).Trim();                                      //Author
+                    string Title = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Album%", false).Trim().Replace(":", " -");                        //Title
+                    string Year = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%rldt%", false).Trim();                                             //Year
                     Year = DateTime.ParseExact(Year, "dd-MMM-yyyy", CultureInfo.InvariantCulture).ToString("yyyy");
-                    string Narrator = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%nrt%", false).Trim();                                          //Narrator
-                    string Bitrate = (Int32.Parse(Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=Audio;%BitRate%", false).Trim()) / 1024).ToString() + "K";  //Bitrate            //Bitrate
+                    string Narrator = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%nrt%", false).Trim();                                          //Narrator
+                    string Bitrate = (Int32.Parse(Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=Audio;%BitRate%", false).Trim()) / 1000).ToString() + "K";  //Bitrate            //Bitrate
 
                     file = structure.Replace("Author", Author);
                     file = file.Replace("Title", Title);
@@ -365,68 +359,68 @@ namespace Main
                     file = file.Replace("Narrator", Narrator);
                     file = file.Replace("Bitrate", Bitrate);
 
-                    Workings.Methods.AlertSuccess(file);
+                    Alert.Success(file);
 
 
                     System.IO.Directory.CreateDirectory($"{hostDir}\\{file}");
                     title = file;
-                    file = $"\"{hostDir}\\{file}\\{file.Trim()}";
+                    file = $"{hostDir}\\{file}\\{file.Trim()}";
 
 
-                    comment = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%Track_More%", false);
+                    comment = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Track_More%", false);
                 }
                 else
                 {
                     filename = Workings.Methods.MediaInfo(aax);
                     title = filename[0];
                     filename[0] = filename[0].Trim().Replace(":", " -");
-                    file = ($@"{filename[2]} [{filename[1]}] {filename[3]}");
-                    Workings.Methods.AlertSuccess(file.Trim());
+                    file = ($"{filename[2]} [{filename[1]}] {filename[3]}");
+                    Alert.Success(file.Trim());
                     comment = filename[4].Trim();
-                    file = $"\"{hostDir}\\{filename[0]}\\{file.Trim()}";
+                    file = $"{hostDir}\\{filename[0]}\\{file.Trim()}";
                     System.IO.Directory.CreateDirectory($"{hostDir}\\{filename[0]}");
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                string info = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%Album%", false);
+                string info = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Album%", false);
                 title = info;
                 info = info.Trim().Replace(":", " -");
                 file = info;
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"  {file}");
                 Console.ResetColor();
-                comment = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"{aax} --Inform=General;%Track_More%", false).Trim();
-                file = $"\"{hostDir}\\{info}\\{file.Trim()}";
+                comment = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Track_More%", false).Trim();
+                file = $"{hostDir}\\{info}\\{file.Trim()}";
                 System.IO.Directory.CreateDirectory($"{hostDir}\\{info}");
             }
 
 
 
-            string bytes = Workings.Methods.getBytes(aax);
+            string bytes = Workings.Methods.getBytes($"\"{aax}\"");
 
-            Thread buffer = new Thread(() => Workings.Methods.Monitor(file.Replace("\"", "")));
-            Thread THR = new Thread(() => Workings.Methods.cueGenTHR($"{aax.Replace("\"", "")}", $"{file.Replace("\"", "")}"));
-            Thread THR1 = new Thread(() => Workings.Methods.m4bMuxer(bytes, aax, title, comment.Replace("\"", ""), file.Replace("\"", "")));
+            Thread buffer = new Thread(() => Workings.Methods.Monitor(file));
+            Thread THR = new Thread(() => Workings.Methods.cueGenTHR($"{aax}", $"{file}"));
+            Thread THR1 = new Thread(() => Workings.Methods.m4bMuxer(bytes, $"\"{aax}\"", title, comment.Replace("\"", ""), file));
             THR1.Priority = ThreadPriority.AboveNormal;
 
-            Workings.Methods.Alert("Generating CUE");
+            Alert.Notify("Generating CUE");
             THR.Start();
-            Workings.Methods.Alert("Muxing M4B");
+            Alert.Notify("Muxing M4B");
             THR1.Start();
             buffer.Start();
             buffer.Join();
 
             THR1.Join();
 
-            Workings.Methods.Alert("Extracting JPG");
-            Workings.Methods.SoftWare($"{root}src\\tools\\ffmpeg.exe", $"-i {aax} -map 0:v -map -0:V -c copy {file}.jpg\" -y", true);
-            string nfo = Workings.Methods.nfo(aax, $"{file}.m4b\"");
+            Alert.Notify("Extracting JPG");
+            Workings.Methods.SoftWare($"{root}src\\tools\\ffmpeg.exe", $"-i \"{aax}\" -map 0:v -map -0:V -c copy \"{file}.jpg\" -y", true);
+            string nfo = Workings.Methods.nfo($"\"{aax}\"", $"\"{file}.m4b\"");
 
             THR.Join();
 
-            Workings.Methods.Alert("Generating NFO");
-            File.WriteAllText(($"{file}.nfo\"").Replace("\"", ""), nfo, Encoding.UTF8);
+            Alert.Notify("Generating NFO");
+            File.WriteAllText($"{file}.nfo", nfo, Encoding.UTF8);
 
             return 0;
         }
