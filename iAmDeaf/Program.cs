@@ -2,7 +2,6 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
@@ -10,14 +9,14 @@ using System.Globalization;
 using System.Configuration;
 using System.Threading;
 using Newtonsoft.Json;
-
+using AAXClean;
 
 namespace Workings
 {
     static class iAmDeaf
     {
         public const string mark = "iAmDeaf";
-        public const string version = "1.4.1";
+        public const string version = "1.4.2";
     }
     class Alert
     {
@@ -29,7 +28,6 @@ namespace Workings
             Console.ResetColor();
             Console.WriteLine("]");
         }
-
         public static void Error(string alert)
         {
             Console.Write("  [Error: ");
@@ -38,7 +36,6 @@ namespace Workings
             Console.ResetColor();
             Console.WriteLine("]");
         }
-
         public static void Success(string alert)
         {
             Console.Write("  [");
@@ -124,7 +121,6 @@ Publisher's Summary
 ";
             return nfo;
         }
-
         public static string[] MediaInfo(string aax)
         {
             aax = String.Concat("\"", aax, "\"");
@@ -149,7 +145,6 @@ Publisher's Summary
 
             return info;
         }
-
         public static void CueClear()
         {
             if (File.Exists($"{root}src\\chapters.txt"))
@@ -161,19 +156,22 @@ Publisher's Summary
                 File.Delete($"{root}src\\chapters.cue");
             }
         }
-
-        public static void cueGenTHR(string aax, string file)
+        public static void cueGenerator(string aax, string file)
         {
             CueClear();
-            SoftWare($@"{root}src\\tools\\ffmpeg.exe", $" -i \"{aax}\" -c copy {root}src\\data\\temp.mkv -y", true);
-            SoftWare($@"{root}src\\tools\\mkvextract.exe", $" {root}src\\data\\temp.mkv chapters -s {root}src\\data\\chapters.txt", true);
-            File.Delete($"{root}src\\data\\temp.mkv");
-            string cuegen = $"{root}src\\tools\\cuegen.vbs {root}src\\data\\chapters.txt";
+            string PID = Process.GetCurrentProcess().Id.ToString();
+            SoftWare($@"{root}src\\tools\\ffmpeg.exe", $" -i \"{aax}\" -c copy {root}src\\data\\dump\\{PID}.mkv -y", true);
+            SoftWare($@"{root}src\\tools\\mkvextract.exe", $" {root}src\\data\\dump\\{PID}.mkv chapters -s {root}src\\data\\dump\\{PID}.txt", true);
+            string cuegen = $"{root}src\\tools\\cuegen.vbs {root}src\\data\\dump\\{PID}.txt";
             var CUEGEN = Process.Start(@"cmd", @"/c " + cuegen);
             CUEGEN.WaitForExit();
-            string[] cue = File.ReadAllLines($"{root}src\\data\\chapters.cue");
+            CUEGEN.Close();
+            CUEGEN.Dispose();
+
+            string[] cue = File.ReadAllLines($"{root}src\\data\\dump\\{PID}.cue");
             cue[0] = $"FILE \"{Path.GetFileName($"{file}.m4b")}\" MP4";
             File.WriteAllLines($"{file}.cue", cue);
+
             if (!File.Exists($"{file}.cue"))
             {
                 Alert.Error("CUE Failed");
@@ -182,46 +180,62 @@ Publisher's Summary
             {
                 Alert.Success("CUE Created");
             }
+
+            File.Delete($"{root}src\\data\\dump\\{PID}.cue");
+            File.Delete($"{root}src\\data\\dump\\{PID}.txt");
+            File.Delete($"{root}src\\data\\dump\\{PID}.mkv");
         }
 
-        public static void m4bMuxer(string bytes, string aax, string title, string comment, string file)
+        public static void CreateAudioBook(string bytes, string aax, string file, string ext = "m4b")
         {
-            var Timer = Stopwatch.StartNew();
-            SoftWare($"{root}src\\tools\\ffmpeg.exe", $" -activation_bytes {bytes} -i {aax} -metadata:g encoding_tool=\"{Workings.iAmDeaf.mark} {Workings.iAmDeaf.version}\" -metadata title=\"{title}\" -metadata comment=\"{comment}\" -c copy \"{file}.m4b\" -y", true);
-            if (!File.Exists($"{file}.m4b"))
+            if (!(ext == "m4b" || ext == "mp3"))
             {
-                Timer.Stop();
-                Alert.Error("M4B Creation failed");
+                Alert.Notify("Invalid codec. Defaulting to M4B");
+                ext = "m4b";
             }
-            else
+            var aaxcFile = new AaxFile(File.OpenRead(aax));
+            aaxcFile.SetDecryptionKey(bytes);
+
+            try
             {
-                Timer.Stop();
-                Alert.Success($"M4B Created in {Timer.ElapsedMilliseconds / 1000}s");
+                aaxcFile.ConvertToMp4a(File.Open($"{file}.{ext}", FileMode.OpenOrCreate, FileAccess.ReadWrite));
+                if (File.Exists($"{file}.{ext}"))
+                {
+                    Alert.Success("AudioBook Created");
+                }
+                else
+                {
+                    Alert.Error("AudioBook Creation Failed");
+                }
+            }
+            catch (Exception ex)
+            {
+                Alert.Error(ex.Message);
             }
         }
-
         public static string getBytes(string aax)
         {
-            string currentSum = $"{root}\\src\\data\\checksum.txt";
+            string currentSum = $"{root}\\src\\data\\KeyHistory\\CurrentSum";
             if (!File.Exists(currentSum))
             {
                 File.Create(currentSum).Dispose();
             }
-            string cacheSum = File.ReadAllText(currentSum);
-            string cacheBytes = $"{root}src\\data\\bytes.txt";
+            string cacheBytes = $"{root}src\\data\\KeyHistory\\CurrentBytes";
             string checksum = SoftWare($@"{root}src\\tools\\ffprobe.exe", $"{aax}", true);
             File.WriteAllText(currentSum, checksum.Replace(" ", ""));
             string[] line = File.ReadAllLines(currentSum);
             checksum = (line[11].Split("==").Last());
             File.WriteAllText(currentSum, checksum);
 
-            Alert.Notify($"Checksum: {checksum}");
-
-            if (cacheSum == checksum)
+            //  Search the log for checksum matches
+            string[] keys = File.ReadAllLines(Path.Combine(root, @"src\data\KeyHistory\log"));
+            for (int i = 0; i < keys.Length; i+=2)
             {
-                Alert.Notify("Checksum Match");
-                Alert.Notify("Using Cached Bytes");
-                return File.ReadAllText(cacheBytes);
+                if (keys[i] == checksum)
+                {
+                    Alert.Notify("Found Cached Bytes");
+                    return keys[i+1];
+                }
             }
 
             /*
@@ -235,29 +249,9 @@ Publisher's Summary
             bytes = (line[32].Split("hex:").Last());
             File.WriteAllText(cacheBytes, bytes);
             Alert.Notify($"Act. Bytes: {bytes}");
+            File.AppendAllText(Path.Combine(root, @"src\data\KeyHistory\log"), $"{checksum}\n{bytes}" + Environment.NewLine);
             return bytes;
         }
-
-        public static void Monitor(string m4b)
-        {
-            m4b = String.Concat(m4b, ".m4b");
-            decimal buffer;
-            Thread.Sleep(1000);
-
-            while (true)
-            {
-                buffer = (decimal)new System.IO.FileInfo(m4b).Length;
-                Console.Write($"  {Decimal.Round(buffer / 1000000, 2)} MB");
-                Console.Write("\r");
-                Thread.Sleep(78);
-                if (buffer == (new System.IO.FileInfo(m4b).Length))
-                {
-                    Alert.Success($"File size of {Decimal.Round(buffer / 1000000, 2)} MB");
-                    break;
-                }
-            }
-        }
-
         public static string SoftWare(string software, string arguments, bool std)
         {
             Process SoftWare = new Process();
@@ -299,8 +293,7 @@ namespace Main
     using Workings;
     class Program
     {
-        public static string root = AppDomain.CurrentDomain.BaseDirectory.ToString();
-
+        public static string root = AppDomain.CurrentDomain.BaseDirectory;
         static int Main(string[] args)
         {
             Console.CursorVisible = false;
@@ -328,19 +321,18 @@ namespace Main
             }
 
             string[] filename;
-            string comment, title, file = string.Empty;
+            string title, file, Output = string.Empty;
+            bool CueEnabled = true;
+            bool NfoEnabled = true;
+            bool CoverEnabled = true;
             string hostDir = Path.GetDirectoryName(aax);
             Alert.Notify("Parsing File");
 
-
-            //Parsing of Json nomanclature.json settings
-            Rootobject result = JsonConvert.DeserializeObject<Rootobject>(File.ReadAllText($"{root}\\src\\data\\nomenclature.json"));
-
-            string structure = $"{result.T1} {result.T2} {result.T3} {result.T4} {result.T5}";
+            //  Parsing of Json config.json settings
+            Rootobject result = JsonConvert.DeserializeObject<Rootobject>(File.ReadAllText($"{root}\\src\\config.json"));
+            string structure = $"{result.Title[0].T1} {result.Title[0].T2} {result.Title[0].T3} {result.Title[0].T4} {result.Title[0].T5}";
             structure = Regex.Replace(structure.Replace("null", null), @"\s+", " ").Trim();
             structure = structure.Replace(" ", " - ");
-
-
 
             try
             {
@@ -358,16 +350,16 @@ namespace Main
                     file = file.Replace("Year", Year);
                     file = file.Replace("Narrator", Narrator);
                     file = file.Replace("Bitrate", Bitrate);
-
                     Alert.Success(file);
 
+                    Output = result.Output;
+                    CueEnabled = result.Files[0].Cue;
+                    NfoEnabled = result.Files[0].NFO;
+                    CoverEnabled = result.Files[0].Cover;
 
                     System.IO.Directory.CreateDirectory($"{hostDir}\\{file}");
                     title = file;
                     file = $"{hostDir}\\{file}\\{file.Trim()}";
-
-
-                    comment = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Track_More%", false);
                 }
                 else
                 {
@@ -376,7 +368,6 @@ namespace Main
                     filename[0] = filename[0].Trim().Replace(":", " -");
                     file = ($"{filename[2]} [{filename[1]}] {filename[3]}");
                     Alert.Success(file.Trim());
-                    comment = filename[4].Trim();
                     file = $"{hostDir}\\{filename[0]}\\{file.Trim()}";
                     System.IO.Directory.CreateDirectory($"{hostDir}\\{filename[0]}");
                 }
@@ -390,49 +381,69 @@ namespace Main
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"  {file}");
                 Console.ResetColor();
-                comment = Workings.Methods.SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Track_More%", false).Trim();
                 file = $"{hostDir}\\{info}\\{file.Trim()}";
                 System.IO.Directory.CreateDirectory($"{hostDir}\\{info}");
             }
 
-
-
             string bytes = Workings.Methods.getBytes($"\"{aax}\"");
 
-            Thread buffer = new Thread(() => Workings.Methods.Monitor(file));
-            Thread THR = new Thread(() => Workings.Methods.cueGenTHR($"{aax}", $"{file}"));
-            Thread THR1 = new Thread(() => Workings.Methods.m4bMuxer(bytes, $"\"{aax}\"", title, comment.Replace("\"", ""), file));
+            Thread THR = new Thread(() => Workings.Methods.cueGenerator(aax, file));
+            Thread THR1 = new Thread(() => Workings.Methods.CreateAudioBook(bytes, aax, file));
             THR1.Priority = ThreadPriority.AboveNormal;
 
-            Alert.Notify("Generating CUE");
-            THR.Start();
-            Alert.Notify("Muxing M4B");
+            if (CueEnabled == true)
+            {
+                Alert.Notify("Generating CUE");
+                THR.Start();
+            }
+            
+            Alert.Notify("Creating AudioBook");
             THR1.Start();
-            buffer.Start();
-            buffer.Join();
-
             THR1.Join();
 
-            Alert.Notify("Extracting JPG");
-            Workings.Methods.SoftWare($"{root}src\\tools\\ffmpeg.exe", $"-i \"{aax}\" -map 0:v -map -0:V -c copy \"{file}.jpg\" -y", true);
-            string nfo = Workings.Methods.nfo($"\"{aax}\"", $"\"{file}.m4b\"");
+            if (CoverEnabled == true)
+            {
+                Alert.Notify("Extracting JPG");
+                Workings.Methods.SoftWare($"{root}src\\tools\\ffmpeg.exe", $"-i \"{aax}\" -map 0:v -map -0:V -c copy \"{file}.jpg\" -y", true);
+            }
 
-            THR.Join();
+            if ( CueEnabled == true)
+            {
+                THR.Join();
+            }
 
-            Alert.Notify("Generating NFO");
-            File.WriteAllText($"{file}.nfo", nfo, Encoding.UTF8);
-
+            if (NfoEnabled == true)
+            {
+                string nfo = Workings.Methods.nfo($"\"{aax}\"", $"\"{file}.m4b\"");
+                Alert.Notify("Generating NFO");
+                File.WriteAllText($"{file}.nfo", nfo, Encoding.UTF8);
+            }
             return 0;
         }
     }
-
     public class Rootobject
     {
         public bool DEFAULT { get; set; }
+        public Title[] Title { get; set; }
+        public Files[] Files { get; set; }
+        public string Output { get; set; }
+    }
+
+    public class Title
+    {
         public string T1 { get; set; }
         public string T2 { get; set; }
         public string T3 { get; set; }
         public string T4 { get; set; }
         public string T5 { get; set; }
     }
+
+    public class Files
+    {
+        public bool Cue { get; set; }
+        public bool NFO { get; set; }
+        public bool Cover { get; set; }
+    }
+
+
 }

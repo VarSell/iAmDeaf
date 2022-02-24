@@ -14,15 +14,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Resources\ffmpeg.exe" />
+    <None Include="..\.editorconfig" Link=".editorconfig" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="Resources\ffmpeg.exe" />
+    <PackageReference Include="AAXClean" Version="0.1.10" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
 
   <ItemGroup>
