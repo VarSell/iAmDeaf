@@ -2,7 +2,7 @@
 
 
 ## Description
-```
+
 Creates a properly tagged .M4B / 
 MP4, with (optional) a copy of the JGP cover, an NFO and a CUE file.
 Created with the purpose of being a "one-click" ripper.
