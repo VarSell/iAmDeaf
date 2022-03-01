@@ -7,9 +7,8 @@ using System.Globalization;
 using System.Threading;
 using Newtonsoft.Json;
 using System.Diagnostics;
-using static Other;
 using Files;
-
+using static Other;
 
 
 namespace Workings
@@ -17,7 +16,7 @@ namespace Workings
     public class iAmDeaf
     {
         public const string mark = "iAmDeaf";
-        public const string version = "1.4.2";
+        public const string version = "1.4.3";
     }
 }
 
@@ -29,6 +28,7 @@ namespace Main
         public static string root = AppDomain.CurrentDomain.BaseDirectory;
         static int Main(string[] args)
         {
+            
             string aax = string.Empty;
 
             if (args.Length > 0)
@@ -124,11 +124,21 @@ namespace Main
                 System.IO.Directory.CreateDirectory($"{hostDir}\\{info}");
             }
 
+            string format = string.Empty; ;
+            switch (Codec)
+            {
+                case "m4b": format = "MP4"; break;
+                case "mp3": format = "MP3"; break;
+            }
+
             string bytes = Get.ActivationBytes(aax);
             Stopwatch sw = Stopwatch.StartNew();
-            Thread THR = new Thread(() => Create.Cue(aax, file));
+            Thread THR = new Thread(() => Create.Cue(aax, file, Codec, format));
             Thread THR1 = new Thread(() => Create.AudioBook(bytes, aax, file, Codec, Split));
             THR1.Priority = ThreadPriority.AboveNormal;
+
+            Thread Lavf_Monitor = new Thread(() => Get.Monitor(String.Concat(@"src\data\dump\", Process.GetCurrentProcess().Id, $".{Codec}")));
+
 
             if (CueEnabled == true)
             {
@@ -137,9 +147,15 @@ namespace Main
             }
 
             Alert.Notify("Creating AudioBook");
-
             THR1.Start();
+
+            if (Codec != "m4b" && !Split)
+            {
+                Lavf_Monitor.Start();
+                Lavf_Monitor.Join();
+            }
             THR1.Join();
+            
 
             if (CoverEnabled == true)
             {
@@ -166,7 +182,7 @@ namespace Main
                     string[] extensions = { string.Concat('.', Codec) };
                     var files = Directory.GetFiles(Path.GetDirectoryName(file), ".").Where(f => Array.Exists(extensions, e => f.EndsWith(e))).ToArray();
                     Alert.Notify("Generating NFO");
-                    nfo = Create.nfo(aax, files[0]);
+                    nfo = Create.nfo(aax, files[0], Split);
                 }
 
                 File.WriteAllText($"{file}.nfo", nfo, Encoding.UTF8);

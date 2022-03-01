@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <ApplicationIcon>302526_data_file_icon.ico</ApplicationIcon>
@@ -18,13 +18,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.0.1" />
+    <PackageReference Include="NAudio.Lame" Version="2.0.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="TagLibSharp" Version="2.2.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Reference Include="AAXClean">
-      <HintPath>..\..\AAXClean\bin\x64\Release\net5.0\AAXClean.dll</HintPath>
+      <HintPath>..\..\..\..\Downloads\AAXCleanM\bin\x64\Release\net5.0\AAXClean.dll</HintPath>
     </Reference>
   </ItemGroup>
 

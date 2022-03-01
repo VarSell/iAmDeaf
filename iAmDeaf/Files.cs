@@ -1,22 +1,29 @@
-﻿using System;
+﻿using AAXClean;
+using System;
 using System.Text;
 using System.Diagnostics;
-using AAXClean;
 using static Other;
-
+using System.IO;
+using NAudio.Wave;
+using NAudio.Lame;
+using NAudio;
+using NAudio.MediaFoundation;
+using System.Threading;
 
 namespace Files
 {
     internal class Create
     {
         public static string root = AppDomain.CurrentDomain.BaseDirectory;
-        public static string nfo(string aax, string file)
+        public static string nfo(string aax, string file, bool split = false)
         {
             string[] nfoPart = new string[15];
             try
             {
                 aax = string.Concat("\"", aax, "\"");
                 file = string.Concat("\"", file, "\"");
+                
+
                 string mi = $"{root}src\\tools\\mediainfo.exe";
                 nfoPart[0] = SoftWare(mi, $"{aax} --Inform=General;%Album%", false);            //Title
                 nfoPart[1] = SoftWare(mi, $"{aax} --Inform=General;%Performer%", false);        //Author
@@ -28,28 +35,35 @@ namespace Files
                 nfoPart[7] = SoftWare(mi, $"{aax} --Inform=General;%Duration/String2%", false); //Duration (h, m)
                 nfoPart[8] = SoftWare(mi, $"{aax} --Inform=\"Menu;%FrameCount%\"", false);      //Chapters
                 nfoPart[9] = SoftWare(mi, $"{aax} --Inform=General;%Format%", false);           //general format
-                nfoPart[10] = SoftWare(mi, $"{file} --Inform=Audio;%Format%", false);            //audio format
-                nfoPart[11] = SoftWare(mi, $"{file} --Inform=Audio;%BitRate%", false);    //source bitrate
+                nfoPart[10] = SoftWare(mi, $"{aax} --Inform=Audio;%Format%", false);            //audio format
+                nfoPart[11] = SoftWare(mi, $"{aax} --Inform=Audio;%BitRate%", false);           //source bitrate
                 try
                 {
-                    nfoPart[11] = (Int32.Parse(nfoPart[11]) / 1000).ToString();
+                    nfoPart[11] = (Int32.Parse(nfoPart[11]) / 1024).ToString();
                 }
                 catch
                 {
                     nfoPart[11] = "NULL";
                     Alert.Error("Failed Getting Source BitRate");
                 }
-                nfoPart[12] = SoftWare(mi, $"{file} --Inform=General;%CodecID%", false); //encoded codecID
-                nfoPart[13] = SoftWare(mi, $"{file} --Inform=Audio;%BitRate%", false);   //encoded bitrate
-                try
+                if ((Path.GetExtension(file.Replace("\"", "")) == ".m4b"))
                 {
-                    nfoPart[13] = (Int32.Parse(nfoPart[13]) / 1000).ToString();
+                    nfoPart[12] = SoftWare(mi, $"{file} --Inform=General;%CodecID%", false); //encoded codecID
                 }
-                catch
+                else
                 {
-                    nfoPart[13] = "NULL";
-                    Alert.Error("Failed Getting Output Bitrate");
+                    string mp3enc = string.Empty;
+                    switch (split)
+                    {
+                        case true: mp3enc = "LAME 3.100";
+                            break;
+                        case false: mp3enc = "Lavf59.16.100";
+                            break;
+                    }
+                    nfoPart[12] = $"{mp3enc} MP3";
                 }
+                nfoPart[13] = (TagLib.File.Create(file.Replace("\"", ""))).Properties.AudioBitrate.ToString();//SoftWare(mi, $"{file} --Inform=Audio;%BitRate%", false);   //encoded bitrate
+                
                 nfoPart[14] = SoftWare(mi, $"{aax} --Inform=General;%Track_More%", false); //comment (Track_More)
             }
             catch (Exception ex)
@@ -74,10 +88,11 @@ Media Information
  Source Format:          Audible {nfoPart[9].ToUpper()} ({nfoPart[10]})
  Source Bitrate:         {nfoPart[11]} kbps
 
+ Lossless Encode:        {(Path.GetExtension(file.Replace("\"", "")) == ".m4b")}
  Encoded Codec:          {nfoPart[12]}
  Encoded Bitrate:        {nfoPart[13]} kbps
 
-Ripper:                  {Workings.iAmDeaf.mark} {Workings.iAmDeaf.version}
+ Ripper:                 {Workings.iAmDeaf.mark} {Workings.iAmDeaf.version}
 
 Publisher's Summary
 ===================
@@ -86,7 +101,7 @@ Publisher's Summary
             return nfo;
         }
 
-        public static void Cue(string aax, string file)
+        public static void Cue(string aax, string file, string codec, string format)
         {
             string PID = Process.GetCurrentProcess().Id.ToString();
 
@@ -104,7 +119,8 @@ Publisher's Summary
 
             string[] cue = File.ReadAllLines($"{root}src\\data\\dump\\{PID}.cue");
 
-            cue[0] = $"FILE \"{Path.GetFileName($"{file}.m4b")}\" MP4";
+
+            cue[0] = $"FILE \"{Path.GetFileName($"{file}.{codec}")}\" {format.ToUpper()}";
 
             
             File.WriteAllLines($"{file}.cue", cue);
@@ -125,13 +141,15 @@ Publisher's Summary
 
         public static void AudioBook(string bytes, string aax, string file, string ext = "m4b", bool split = false)
         {
+
+
             if (!(ext == "m4b" || ext == "mp3"))
             {
                 Alert.Notify($"Invalid codec {ext}. Defaulting to M4B");
                 ext = "m4b";
             }
 
-            var aaxFile = new AaxFile(File.OpenRead(aax));
+            var aaxFile = new AAXClean.AaxFile(File.OpenRead(aax));
             aaxFile.SetDecryptionKey(bytes);
 
             if (ext == "m4b")
@@ -160,18 +178,19 @@ Publisher's Summary
                 {
                     try
                     {
-                        File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"src\data\dump\host"), Path.GetDirectoryName(file));
+                        File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @$"src\data\dump\{Process.GetCurrentProcess().Id}"), Path.GetDirectoryName(file));
 
                         aaxFile.ConvertToMultiMp4a(aaxFile.GetChapterInfo(), NewSplit);
 
                         static void NewSplit(NewSplitCallback newSplitCallback)
                         {
-                            string dir = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"src\data\dump\host"));
+                            string dir = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @$"src\data\dump\{Process.GetCurrentProcess().Id}"));
 
                             string fileName = newSplitCallback.Chapter.Title.Replace(":", "") + ".m4b";
 
                             newSplitCallback.OutputFile = File.OpenWrite(Path.Combine(dir, fileName));
                         }
+                        File.Delete($@"src\data\dump\{Process.GetCurrentProcess().Id}");
                     }
                     catch (Exception ex)
                     {
@@ -179,25 +198,116 @@ Publisher's Summary
                     }
                 }
             }
-            /*if (ext == "mp3") // Fuck, the fixed aaxclean does not support mp3 conversion
+
+            if (ext == "mp3" && split == false)
             {
-                try
+                Load.LoadLameDLL();
+
+                string temp = TempMP4(bytes, aax);
+                string PID = Process.GetCurrentProcess().Id.ToString();
+
+                TagLib.File mp4 = TagLib.File.Create(temp);
+                int br = Int32.Parse(string.Concat(mp4.Properties.AudioBitrate.ToString(), "000"));
+
+                string nrt = SoftWare(@"src\tools\mediainfo.exe", $"\"{temp}\" --Inform=General;%nrt%", false);
+                string comment = SoftWare(@"src\tools\mediainfo.exe", $"\"{temp}\" --Inform=General;%Track_More%", false);
+
+                Alert.Notify($"Lavf59.16.100 - {br.ToString()[..3]}_CBR");
+
+                MediaFoundationApi.Startup();
+                var aacFilePath = $@"src\data\dump\{PID}.mp3";
+                using (var reader = new MediaFoundationReader(temp))
                 {
-                    aaxFile.ConvertToMp3(File.Open($"{file}.mp3", FileMode.OpenOrCreate, FileAccess.ReadWrite);
-                    if (File.Exists($"{file}.m4b"))
-                    {
-                        Alert.Success("AudioBook Created");
-                    }
-                    else
-                    {
-                        Alert.Error("AudioBook Creation Failed");
-                    }
+                    MediaFoundationEncoder.EncodeToMp3(reader, aacFilePath, br);
                 }
-                catch (Exception ex)
+
+                Alert.Notify("Tagging File");
+
+                SoftWare(@"src\tools\ffmpeg.exe", $"-i \"{temp}\" -i src\\data\\dump\\{PID}.mp3 -map 1 -metadata Narrator=\"{nrt}\" -metadata Comment=\"{comment.Replace("\"", string.Empty)}\" -c copy \"{file}.mp3\" -y", true);
+                SoftWare($"src\\tools\\ffmpeg.exe", $"-i \"{temp}\" -map 0:v -map -0:V -c copy src\\data\\dump\\{PID}.jpg -y", true);
+
+
+                if (!(Embed.SetCoverArt(string.Concat(file, ".mp3"), $"{root}src\\data\\dump\\{PID}.jpg")))
                 {
-                    Alert.Error(ex.Message);
+                    Alert.Notify("Unable to set cover art");
                 }
-            }*/
+
+
+                File.Delete($"src\\data\\dump\\{PID}.mp4");
+                File.Delete($"src\\data\\dump\\{PID}.mp3");
+                File.Delete($"src\\data\\dump\\{PID}.jpg");
+            }
+            else
+            {
+                if (split && ext == "mp3")
+                {
+                    Load.LoadLameDLL();
+                    File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @$"src\data\dump\{Process.GetCurrentProcess().Id}"), Path.GetDirectoryName(file));
+
+                    var chapters = aaxFile.GetChapterInfo();
+
+                    LameConfig lameConfig = new LameConfig();
+                    lameConfig.Preset = Get.Preset(aax);
+
+
+                    aaxFile.ConvertToMultiMp3(aaxFile.GetChapterInfo(), NewSplit, lameConfig);
+
+                    static void NewSplit(NewSplitCallback newSplitCallback)
+                    {
+                        string dir = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $@"src\data\dump\{Process.GetCurrentProcess().Id}"));
+
+                        string fileName = newSplitCallback.Chapter.Title.Replace(":", "") + ".mp3";
+
+                        newSplitCallback.OutputFile = File.OpenWrite(Path.Combine(dir, fileName));
+                    }
+                    File.Delete($@"src\data\dump\{Process.GetCurrentProcess().Id}");
+                }
+            }
+        }
+
+        internal static string TempMP4(string bytes, string aax)
+        {
+            string file = @$"src\data\dump\{Process.GetCurrentProcess().Id}.mp4";
+            var aaxFile = new AaxFile(File.OpenRead(aax));
+            aaxFile.SetDecryptionKey(bytes);
+            aaxFile.ConvertToMp4a(File.Open(file, FileMode.OpenOrCreate, FileAccess.ReadWrite));
+            return file;
+        }
+    }
+
+    public class Embed
+    {
+        public static bool SetCoverArt(string AudioFile, string CoverFile)
+        {
+            if(!(File.Exists(AudioFile) || File.Exists(CoverFile)))
+            {
+                Alert.Error("Audio or Cover missing!");
+                return false;
+            }
+
+            try
+            {
+                // Формируем картинку в кадр Id3v2
+                TagLib.Id3v2.Tag.DefaultVersion = 3;
+                TagLib.Id3v2.Tag.ForceDefaultVersion = true;
+
+                TagLib.File TagLibFile = TagLib.File.Create(AudioFile);
+                TagLib.Picture picture = new TagLib.Picture(CoverFile);
+                TagLib.Id3v2.AttachmentFrame albumCoverPictFrame = new TagLib.Id3v2.AttachmentFrame(picture);
+                albumCoverPictFrame.MimeType = System.Net.Mime.MediaTypeNames.Image.Jpeg;
+                albumCoverPictFrame.Type = TagLib.PictureType.FrontCover;
+                TagLib.IPicture[] pictFrames = new TagLib.IPicture[1];
+                pictFrames[0] = (TagLib.IPicture)albumCoverPictFrame;
+                TagLibFile.Tag.Pictures = pictFrames;
+                TagLibFile.Save();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Alert.Error($"Unable to set cover art: {ex.Message}");
+                return false;
+            }
         }
     }
 
@@ -228,6 +338,8 @@ Publisher's Summary
                 }
             }
 
+            
+
             /*
              * Just as a reminder, this is where current dir is changed, as rcrack doesnt like to be launched when it's not in its root dir without its files
              */
@@ -243,6 +355,19 @@ Publisher's Summary
             return bytes;
         }
         
+        /*public static int LoadingAnimation(Thread Life)
+        {
+            Thread.Sleep(3000);
+            while (Life.IsAlive)
+            {
+                if (!Life.IsAlive)
+                {
+                    return 1;
+                }
+            }
+            return 1;
+        }*/
+
         public static string[] AaxInformation(string aax)
         {
             aax = String.Concat("\"", aax, "\"");
@@ -266,6 +391,54 @@ Publisher's Summary
             }
 
             return info;
+        }
+
+        public static NAudio.Lame.LAMEPreset Preset (string file)
+        {
+            int bitrate = (Int32.Parse(SoftWare(@"src\tools\mediainfo.exe", $"\"{file}\" --Inform=Audio;%BitRate%", false)) / 1024);
+            
+            switch (bitrate)
+            {
+                case >= 124:
+                    Alert.Notify($"LAME 3.100 - V1"); return LAMEPreset.V1;
+                case >= 95:
+                    Alert.Notify($"LAME 3.100 - ABR_96"); return LAMEPreset.ABR_96;
+                case >= 60:
+                    Alert.Notify($"LAME 3.100 - ABR_64"); return LAMEPreset.ABR_64;
+                case >= 31:
+                    Alert.Notify($"LAME 3.100 - ABR_32"); return LAMEPreset.ABR_32;
+                default:
+                    Alert.Notify($"LAME 3.100 - ABR_32"); return LAMEPreset.ABR_32;
+            }
+        }
+
+        public static void Monitor(string file)
+        {
+            decimal buffer;
+            while (!File.Exists(file))
+            {
+                Thread.Sleep(700);
+            }
+            while (true)
+            {
+                buffer = (decimal)new System.IO.FileInfo(file).Length;
+                Console.Write($"  {Decimal.Round(buffer / 1048576, 2)} MB");
+                Console.Write("\r");
+                Thread.Sleep(78);
+                if (buffer == (new System.IO.FileInfo(file).Length))
+                {
+                    Alert.Success($"File size of {Decimal.Round(buffer / 1048576, 2)} MB");
+                    break;
+                }
+            }
+        }
+    }
+
+    class Load
+    {
+        public static void LoadLameDLL()
+        {
+            LameDLL.LoadNativeDLL(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"src\data"));
         }
     }
 }
