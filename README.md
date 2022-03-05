@@ -43,7 +43,7 @@ iAmDeaf -c <ASIN>   //Where ASIN is the book ID in your library. Example: iAmDea
  
  The created Audiobooks will be added to the "Audiobooks" on the desktop.
 
-##Decryption of offline backups
+## Decryption of offline backups
 [voucher and aaxc must have the same filenames]
 ```bash
 iAmDeaf <full_path_to_aaxc>
