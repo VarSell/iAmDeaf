@@ -159,6 +159,7 @@ Publisher's Summary
                     try
                     {
                         aaxFile.ConvertToMp4a(File.Open($"{file}.m4b", FileMode.OpenOrCreate, FileAccess.ReadWrite));
+                        aaxFile.Close();
 
                         if (File.Exists($"{file}.m4b"))
                         {

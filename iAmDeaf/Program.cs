@@ -16,7 +16,7 @@ namespace Workings
     public class iAmDeaf
     {
         public const string mark = "iAmDeaf";
-        public const string version = "1.4.3";
+        public const string version = "2.0.0";
     }
 }
 
@@ -28,11 +28,28 @@ namespace Main
         public static string root = AppDomain.CurrentDomain.BaseDirectory;
         static int Main(string[] args)
         {
-            
             string aax = string.Empty;
 
             if (args.Length > 0)
             {
+                if (args[0] == "-c")
+                {
+                    try
+                    {
+                        Alert.Notify($"AAXC Decryption: {args[1]}");
+                        Plus.Catagolue.Download(args[1]);
+                    }
+                    catch (Exception ex)
+                    {
+                        Alert.Error(ex.Message);
+                        Alert.Error("Missing ASIN");
+                        Alert.Notify("Usage: iAmDeaf -c <ASIN>");
+                    }
+
+                    return 0;
+                }
+
+                // AAXC AAX DIVIDER
 
                 foreach (Object obj in args)
                 {
@@ -51,6 +68,14 @@ namespace Main
                 Alert.Error("No args provided.");
                 return 0;
             }
+
+            // Local AAXC check
+            if (Path.GetExtension(aax) == ".aaxc")
+            {
+                PlusLocal.LocalAAXC.GetPaths(aax);
+                return 0;
+            }
+
 
             Console.CursorVisible = false;
 
@@ -225,4 +250,6 @@ namespace Main
         public string Codec { get; set; }
         public bool Split { get; set; }
     }
+
+    
 }
