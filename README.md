@@ -19,10 +19,9 @@ It can then be started by simply double clicking the file, or just entering the 
 ## Settings
 The program's settings can be found in the config.json file.
 Options available are:
-Title order of: Author ; Title ; Year ; Narrator ; Bitrate ; null (for empty)
-Codec: MP3 ; M4B
-Split by chapters: True ; False
-Mp3 Encoder: Lavf ; LAME
+ - Title order of (Author / Title / Year / Narrator / Bitrate / null (for empty))
+ - Codec (MP3 / M4B)
+ - Split by chapters (true / false)
 
 #AAXC Usage
 You must set up your Audible profile. Run "ProfileSetup.cmd" and follow the given instructions.
@@ -39,7 +38,7 @@ iAmDeaf -c <ASIN>   //Where ASIN is the book ID in your library.
 
 ##AAXC Settings
  - By default generates an nfo, cue, cover. Can be changed in config.json
- - Split (true/false)
- - Backup (true/false)   //Backups the .voucher and .aaxc to "Audiobooks/bak" in case of future offline decryption. Enabled by default.
+ - Split (true / false)
+ - Backup (true / false)   //Backups the .voucher and .aaxc to "Audiobooks/bak" in case of future offline decryption. Enabled by default.
  
  The created Audiobooks will be added to the "Audiobooks" on the desktop.
