@@ -48,4 +48,4 @@ iAmDeaf -c <ASIN>   //Where ASIN is the book ID in your library. Example: iAmDea
 ```bash
 iAmDeaf <full_path_to_aaxc>
 ```
-### The offline decryption only saves an M4B copy of the file in the same directry as the source files. No nfo, cue or image.
+#### The offline decryption only saves an M4B copy of the file in the same directry as the source files. No nfo, cue or image.
