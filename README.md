@@ -36,7 +36,7 @@ Personal suggestions for ease of setup:
 iAmDeaf -c <ASIN>   //Where ASIN is the book ID in your library. Example: iAmDeaf -c B002V5B8P8
 ```
 
-##AAXC Settings
+## AAXC Settings
  - By default generates an nfo, cue, cover. Can be changed in config.json
  - Split (true / false)
  - Backup (true / false)   //Backups the .voucher and .aaxc to "Audiobooks/bak" in case of future offline decryption. Enabled by default.
@@ -44,7 +44,7 @@ iAmDeaf -c <ASIN>   //Where ASIN is the book ID in your library. Example: iAmDea
  The created Audiobooks will be added to the "Audiobooks" on the desktop.
 
 ## Decryption of offline backups
-[voucher and aaxc must have the same filenames]
+[There must be only one voucher and aaxc file in the same folder, to prevent mixups]
 ```bash
 iAmDeaf <full_path_to_aaxc>
 ```
