@@ -24,16 +24,16 @@ Options available are:
  - Split by chapters (true / false)
 
 # AAXC Usage
-You must set up your Audible profile. Run "ProfileSetup.cmd" and follow the given instructions.
+You must first set up your Audible profile. Run "ProfileSetup.cmd" and follow the given instructions.
 
 Personal suggestions for ease of setup:
  - Encrypt auth file: n
  - login with external browser: y
  - login with pre.amazon audible account: n
- - 
+ 
 ## Download + Decryption of Plus Catalogue Titles
 ```bash
-iAmDeaf -c <ASIN>   //Where ASIN is the book ID in your library.
+iAmDeaf -c <ASIN>   //Where ASIN is the book ID in your library. Example: iAmDeaf -c B002V5B8P8
 ```
 
 ##AAXC Settings
