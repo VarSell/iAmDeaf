@@ -1,4 +1,4 @@
-# CLI ripper for AAX (Audible) files.
+# CLI ripper for AAX - AAXC (Audible) files.
 
 
 ## Description
@@ -23,3 +23,23 @@ Title order of: Author ; Title ; Year ; Narrator ; Bitrate ; null (for empty)
 Codec: MP3 ; M4B
 Split by chapters: True ; False
 Mp3 Encoder: Lavf ; LAME
+
+#AAXC Usage
+You must set up your Audible profile. Run "ProfileSetup.cmd" and follow the given instructions.
+
+Personal suggestions for ease of setup:
+ - Encrypt auth file: n
+ - login with external browser: y
+ - login with pre.amazon audible account: n
+ - 
+## Download + Decryption of Plus Catalogue Titles
+```bash
+iAmDeaf -c <ASIN>   //Where ASIN is the book ID in your library.
+```
+
+##AAXC Settings
+ - By default generates an nfo, cue, cover. Can be changed in config.json
+ - Split (true/false)
+ - Backup (true/false)   //Backups the .voucher and .aaxc to "Audiobooks/bak" in case of future offline decryption. Enabled by default.
+ 
+ The created Audiobooks will be added to the "Audiobooks" on the desktop.
