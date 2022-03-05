@@ -11,6 +11,7 @@
     <ErrorReport>none</ErrorReport>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <PackageIcon>302526_data_file_icon.ico</PackageIcon>
+    <FileVersion>2.0.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

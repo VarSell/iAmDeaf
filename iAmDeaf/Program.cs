@@ -16,7 +16,7 @@ namespace Workings
     public class iAmDeaf
     {
         public const string mark = "iAmDeaf";
-        public const string version = "2.0.0";
+        public const string version = "2.0.0.0";
     }
 }
 
