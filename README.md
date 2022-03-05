@@ -23,7 +23,7 @@ Options available are:
  - Codec (MP3 / M4B)
  - Split by chapters (true / false)
 
-#AAXC Usage
+# AAXC Usage
 You must set up your Audible profile. Run "ProfileSetup.cmd" and follow the given instructions.
 
 Personal suggestions for ease of setup:
