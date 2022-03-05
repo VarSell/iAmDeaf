@@ -37,7 +37,24 @@ namespace Main
                     try
                     {
                         Alert.Notify($"AAXC Decryption: {args[1]}");
-                        Plus.Catagolue.Download(args[1]);
+                        Plus.Catagolue.Download(args[1], "aaxc");
+                    }
+                    catch (Exception ex)
+                    {
+                        Alert.Error(ex.Message);
+                        Alert.Error("Missing ASIN");
+                        Alert.Notify("Usage: iAmDeaf -c <ASIN>");
+                    }
+
+                    return 0;
+                }
+
+                if (args[0] == "-l")
+                {
+                    try
+                    {
+                        Alert.Notify($"AAX Decryption: {args[1]}");
+                        Plus.Catagolue.Download(args[1], "aax");
                     }
                     catch (Exception ex)
                     {

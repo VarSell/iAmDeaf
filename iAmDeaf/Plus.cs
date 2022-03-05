@@ -8,7 +8,7 @@ namespace Plus
 {
     internal class Catagolue
     {
-        public static void Download(string ASIN)
+        public static void Download(string ASIN, string kind)
         {
             Rootobject1 Settings = JsonConvert.DeserializeObject<Rootobject1>(File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"src\config.json")));
 
@@ -21,24 +21,36 @@ namespace Plus
             if (Cover) { param = "--cover --cover-size 1215"; }
 
             Alert.Notify("Downloading");
-            SoftWare(@"src\tools\audible.exe", $@"download -a {ASIN} {param} -o {AppDomain.CurrentDomain.BaseDirectory}src\data\dump --aaxc", false);
+            SoftWare(@"src\tools\audible.exe", $@"download -a {ASIN} {param} -o {AppDomain.CurrentDomain.BaseDirectory}src\data\dump --{kind}", false);
 
             Alert.Notify("Parsing Voucher");
             var Keys = ParseVoucher();
 
             Alert.Notify("Creating Audiobook");
-            if (!AAXCDecrypt(Keys[0], Keys[1], nfo, Cue, Cover, Split))
+            if (kind == "aaxc")
             {
-                Alert.Error("AAXC Decryption Failed");
+                if (!AAXCDecrypt(Keys[0], Keys[1], nfo, Cue, Cover, Split, kind))
+                {
+                    Alert.Error("AAXC Decryption Failed");
+                }
+                else
+                {
+                    Cleanup(Backup, kind);
+                    Alert.Success("Audiobook Created");
+                }
             }
-            else
+
+            if (kind == "aax")
             {
-                Cleanup(Backup);
-                Alert.Success("Audiobook Created");
+                var file = Directory.GetFiles($@"{AppDomain.CurrentDomain.BaseDirectory}src\data\dump\", $"*.{kind}")[0];
+                string bytes = Get.ActivationBytes(kind);
+                Alert.Success($"Act Bytes: {bytes}");
+                Thread THR = new Thread(() => Create.Cue(file, "test", "m4b", "MP4"));
+                Thread THR1 = new Thread(() => Create.AudioBook(bytes, file, "TSUKANI", "m4b", Split));
             }
         }
 
-        public static bool AAXCDecrypt(string key, string iv, bool nfo, bool Cue, bool Cover, bool Split)
+        public static bool AAXCDecrypt(string key, string iv, bool nfo, bool Cue, bool Cover, bool Split, string kind)
         {
             string root = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
@@ -47,7 +59,7 @@ namespace Plus
                 Directory.CreateDirectory(Path.Combine(root, "Audiobooks"));
             }
 
-            var file = Directory.GetFiles($@"{AppDomain.CurrentDomain.BaseDirectory}src\data\dump\", "*.aaxc")[0];
+            var file = Directory.GetFiles($@"{AppDomain.CurrentDomain.BaseDirectory}src\data\dump\", $"*.{kind}")[0];
 
 
             string filename = Other.SoftWare(@"src\tools\mediainfo.exe", $"\"{file}\" --Inform=General;%Album%", false);
@@ -145,10 +157,10 @@ namespace Plus
             }
         }
 
-        public static void Cleanup(bool bak)
+        public static void Cleanup(bool bak, string kind)
         {
 
-            string aaxc = Directory.GetFiles($@"{AppDomain.CurrentDomain.BaseDirectory}src\data\dump\", "*.aaxc")[0];
+            string aaxc = Directory.GetFiles($@"{AppDomain.CurrentDomain.BaseDirectory}src\data\dump\", $"*.{kind}")[0];
             string voucher = Directory.GetFiles($@"{AppDomain.CurrentDomain.BaseDirectory}src\data\dump\", "*.voucher")[0];
             if (!bak)
             {

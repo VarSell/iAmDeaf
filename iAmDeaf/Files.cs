@@ -76,7 +76,7 @@ namespace Files
  Title:                  {nfoPart[0]}
  Author:                 {nfoPart[1]}
  Narrator:               {nfoPart[2]}
- AudioBook Copyright:    {nfoPart[3]}
+ AudioBook Copyright:    {nfoPart[3].Replace("&#169;", string.Empty).Replace(";", " ")}
  Genre:                  {nfoPart[4]}
  Publisher:              {nfoPart[5]}
  Published:              {nfoPart[6]}
@@ -317,6 +317,8 @@ Publisher's Summary
         public static string root = AppDomain.CurrentDomain.BaseDirectory;
         public static string ActivationBytes(string aax)
         {
+            //if launched from another class
+            root = AppDomain.CurrentDomain.BaseDirectory;
             string currentSum = $"{root}\\src\\data\\KeyHistory\\CurrentSum";
             if (!File.Exists(currentSum))
             {
