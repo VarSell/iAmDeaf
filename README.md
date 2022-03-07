@@ -1,4 +1,4 @@
-# CLI ripper for AAX - AAXC (Audible) files.
+# CLI ripper for AAX - AAXC (Plus Catalogue) files.
 #### Uses [Audible-CLI](https://github.com/mkb79/audible-cli) and [AAXClean](https://github.com/Mbucari/AAXClean) as it's backbone. Many thanks to the creators!
 
 ## Description
