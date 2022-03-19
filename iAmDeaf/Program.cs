@@ -16,7 +16,7 @@ namespace Workings
     public class iAmDeaf
     {
         public const string mark = "iAmDeaf";
-        public const string version = "2.0.0.0";
+        public const string version = "2.0.0";
     }
 }
 
@@ -37,24 +37,7 @@ namespace Main
                     try
                     {
                         Alert.Notify($"AAXC Decryption: {args[1]}");
-                        Plus.Catagolue.Download(args[1], "aaxc");
-                    }
-                    catch (Exception ex)
-                    {
-                        Alert.Error(ex.Message);
-                        Alert.Error("Missing ASIN");
-                        Alert.Notify("Usage: iAmDeaf -c <ASIN>");
-                    }
-
-                    return 0;
-                }
-
-                if (args[0] == "-l")
-                {
-                    try
-                    {
-                        Alert.Notify($"AAX Decryption: {args[1]}");
-                        Plus.Catagolue.Download(args[1], "aax");
+                        Plus.Catagolue.Download(args[1]);
                     }
                     catch (Exception ex)
                     {
@@ -149,8 +132,9 @@ namespace Main
                     filename[0] = filename[0].Trim().Replace(":", " -");
                     file = ($"{filename[2]} [{filename[1]}] {filename[3]}");
                     Alert.Success(file.Trim());
-                    file = $"{hostDir}\\{filename[0]}\\{file.Trim()}";
-                    System.IO.Directory.CreateDirectory($"{hostDir}\\{filename[0]}");
+                    var _file = file;
+                    file = $"{hostDir}\\{file.Trim()}\\{file.Trim()}";
+                    System.IO.Directory.CreateDirectory($"{hostDir}\\{_file.Trim()}");
                 }
             }
             catch
@@ -174,6 +158,10 @@ namespace Main
             }
 
             string bytes = Get.ActivationBytes(aax);
+            if (bytes == string.Empty)
+            {
+                return 0;
+            }
             Stopwatch sw = Stopwatch.StartNew();
             Thread THR = new Thread(() => Create.Cue(aax, file, Codec, format));
             Thread THR1 = new Thread(() => Create.AudioBook(bytes, aax, file, Codec, Split));
