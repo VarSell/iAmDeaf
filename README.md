@@ -1,8 +1,8 @@
-# CLI ripper for AAX - AAXC (Audible) files.
+# CLI ripper for AAX - AAXC (Plus Catalogue) files.
 #### Uses [Audible-CLI](https://github.com/mkb79/audible-cli) and [AAXClean](https://github.com/Mbucari/AAXClean) as it's backbone. Many thanks to the creators!
 
 ## Description
-
+### [Requirements: Win, x64]
 Creates a properly tagged .M4B / 
 MP3, with (optional) a copy of the JGP cover, an NFO and a CUE file.
 Created with the purpose of being a "one-click" ripper.
