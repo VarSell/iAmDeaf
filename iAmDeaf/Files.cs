@@ -9,6 +9,7 @@ using NAudio.Lame;
 using NAudio;
 using NAudio.MediaFoundation;
 using System.Threading;
+using Aax.Activation.ApiClient;
 
 namespace Files
 {
@@ -312,65 +313,79 @@ Publisher's Summary
         }
     }
 
-    class Get
+    public class Get
     {
         public static string root = AppDomain.CurrentDomain.BaseDirectory;
+
+        internal static async Task<string> aaxcAsync(string checksum)
+        {
+            return AaxActivationClient.Instance.ResolveActivationBytes(checksum).Result.ToString();
+        }
+        internal static string Hash(string file)
+        {
+            try
+            {
+                using (var fs = System.IO.File.OpenRead(file))
+                using (var br = new BinaryReader(fs))
+                {
+                    fs.Position = 0x251 + 56 + 4;
+                    var checksum = br.ReadBytes(20);
+                    return bytes(checksum);
+                }
+            }
+            catch(Exception ex)
+            {
+                Alert.Error("Error calculating Hash: "+ ex.Message);
+            }
+            return String.Empty;
+        }
+
+        internal static string bytes(byte[] bt)
+        {
+            try
+            {
+                StringBuilder sb = new StringBuilder();
+                foreach (byte b in bt)
+                    sb.Append(b.ToString("X2"));
+
+                string hexString = sb.ToString();
+                return hexString;
+            }
+            catch (Exception ex)
+            {
+                Alert.Error("Converting Hash to Hex: "+ex.Message);
+                return String.Empty;
+            }
+        }
+
+        
         public static string ActivationBytes(string aax)
         {
-            //if launched from another class
-            root = AppDomain.CurrentDomain.BaseDirectory;
-            string currentSum = $"{root}\\src\\data\\KeyHistory\\CurrentSum";
-            if (!File.Exists(currentSum))
-            {
-                File.Create(currentSum).Dispose();
-            }
-            string cacheBytes = $"{root}src\\data\\KeyHistory\\CurrentBytes";
-            string checksum = SoftWare($@"{root}src\\tools\\ffprobe.exe", $"\"{aax}\"", true);
-            File.WriteAllText(currentSum, checksum.Replace(" ", ""));
-            string[] line = File.ReadAllLines(currentSum);
-            checksum = (line[11].Split("==").Last());
-            File.WriteAllText(currentSum, checksum);
-
+            var checksum = Hash(aax);
             string[] keys = File.ReadAllLines(Path.Combine(root, @"src\data\KeyHistory\log"));
+
             for (int i = 0; i < keys.Length; i+=2)
             {
                 if (keys[i] == checksum)
                 {
-                    Alert.Notify("Found Cached Bytes");
                     return keys[i+1];
                 }
             }
 
-            
-
-            /*
-             * Just as a reminder, this is where current dir is changed, as rcrack doesnt like to be launched when it's not in its root dir without its files
-             */
-
-            Directory.SetCurrentDirectory($"{root}src\\tables");
-            string bytes = SoftWare($"rcrack.exe", $" . -h {checksum}", false);
-            File.WriteAllText(cacheBytes, bytes.Replace(" ", ""));
-            line = File.ReadAllLines(cacheBytes);
-            bytes = (line[32].Split("hex:").Last());
-            File.WriteAllText(cacheBytes, bytes);
-            Alert.Notify($"Act. Bytes: {bytes}");
+            string bytes = string.Empty;
+            try
+            {
+                bytes = AaxActivationClient.Instance.ResolveActivationBytes(checksum).Result.ToString();
+            }
+            catch(Exception ex)
+            {
+                Alert.Error("Key not found in offline log: "+ex.Message);
+                return string.Empty;
+            }
             File.AppendAllText(Path.Combine(root, @"src\data\KeyHistory\log"), $"{checksum}\n{bytes}" + Environment.NewLine);
             return bytes;
         }
         
-        /*public static int LoadingAnimation(Thread Life)
-        {
-            Thread.Sleep(3000);
-            while (Life.IsAlive)
-            {
-                if (!Life.IsAlive)
-                {
-                    return 1;
-                }
-            }
-            return 1;
-        }*/
-
         public static string[] AaxInformation(string aax)
         {
             aax = String.Concat("\"", aax, "\"");
