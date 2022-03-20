@@ -102,6 +102,68 @@ Publisher's Summary
             return nfo;
         }
 
+        public static void Cuev2(string aax, string file, string codec, string format)
+        {
+            var ch = SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\mediainfo.exe", $"\"{aax}\"", false);
+            //split the chapters
+            ch = ch.Substring(ch.IndexOf("Frame count"));
+
+            string PID = Process.GetCurrentProcess().Id.ToString();
+            string _temp = Path.Combine(AppContext.BaseDirectory, $"src\\data\\dump\\{PID}.txt");
+            File.WriteAllText(_temp, ch);
+
+            string[] chpts = File.ReadAllLines(_temp);
+            string[] chtm = new string[chpts.Length];
+            string[] chndx = new string[chpts.Length];
+            string[] chnm = new string[chpts.Length];
+            string chapterFile = string.Empty;
+
+            for (int i = 2; i < chpts.Length; i++)
+            {
+                //Chapter timings
+                chtm[i] = chpts[i].Substring(0, chpts[i].LastIndexOf(":")).Trim();
+                //Chapter names
+                chnm[i] = chpts[i].Substring(chpts[i].LastIndexOf(":") + 1).Trim();
+                //Chapter index
+                chndx[i] = chnm[i].Replace("Chapter", string.Empty).Trim();
+                if (chndx[i].Length < 2)
+                {
+                    chndx[i] = string.Concat("0", chndx[i]);
+                }
+
+                chapterFile += $"CHAPTER{chndx[i]}={chtm[i]}\nCHAPTER{chndx[i]}NAME={chnm[i]}"+Environment.NewLine;
+            }
+
+
+            File.WriteAllText(_temp, chapterFile.Trim());
+            string cuegen = $@"{root}src\tools\cuegen.vbs {root}src\\data\\dump\\{PID}.txt";
+            var CUEGEN = Process.Start(@"cmd", @"/c " + cuegen);
+
+            CUEGEN.WaitForExit();
+            CUEGEN.Close();
+            CUEGEN.Dispose();
+
+            string[] cue = File.ReadAllLines($"{root}src\\data\\dump\\{PID}.cue");
+
+
+            cue[0] = $"FILE \"{Path.GetFileName($"{file}.{codec}")}\" {format.ToUpper()}";
+
+
+            File.WriteAllLines($"{file}.cue", cue);
+
+            if (!File.Exists($"{file}.cue"))
+            {
+                Alert.Error("Cue Failed");
+            }
+            else
+            {
+                Alert.Success("Cue Created");
+            }
+
+            File.Delete($@"{root}src\data\dump\{PID}.cue");
+            File.Delete($@"{root}src\data\dump\{PID}.txt");
+        }
+
         public static void Cue(string aax, string file, string codec, string format)
         {
             string PID = Process.GetCurrentProcess().Id.ToString();
