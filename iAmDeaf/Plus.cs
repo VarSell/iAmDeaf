@@ -8,7 +8,7 @@ namespace Plus
 {
     internal class Catagolue
     {
-        public static void Download(string ASIN, string kind)
+        public static void Download(string ASIN)
         {
             Rootobject1 Settings = JsonConvert.DeserializeObject<Rootobject1>(File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"src\config.json")));
 
@@ -21,36 +21,24 @@ namespace Plus
             if (Cover) { param = "--cover --cover-size 1215"; }
 
             Alert.Notify("Downloading");
-            SoftWare(@"src\tools\audible.exe", $@"download -a {ASIN} {param} -o {AppDomain.CurrentDomain.BaseDirectory}src\data\dump --{kind}", false);
+            SoftWare(@"src\tools\audible.exe", $@"download -a {ASIN} {param} -o {AppDomain.CurrentDomain.BaseDirectory}src\data\dump --aaxc", false);
 
             Alert.Notify("Parsing Voucher");
             var Keys = ParseVoucher();
 
             Alert.Notify("Creating Audiobook");
-            if (kind == "aaxc")
+            if (!AAXCDecrypt(Keys[0], Keys[1], nfo, Cue, Cover, Split))
             {
-                if (!AAXCDecrypt(Keys[0], Keys[1], nfo, Cue, Cover, Split, kind))
-                {
-                    Alert.Error("AAXC Decryption Failed");
-                }
-                else
-                {
-                    Cleanup(Backup, kind);
-                    Alert.Success("Audiobook Created");
-                }
+                Alert.Error("AAXC Decryption Failed");
             }
-
-            if (kind == "aax")
+            else
             {
-                var file = Directory.GetFiles($@"{AppDomain.CurrentDomain.BaseDirectory}src\data\dump\", $"*.{kind}")[0];
-                string bytes = Get.ActivationBytes(kind);
-                Alert.Success($"Act Bytes: {bytes}");
-                Thread THR = new Thread(() => Create.Cue(file, "test", "m4b", "MP4"));
-                Thread THR1 = new Thread(() => Create.AudioBook(bytes, file, "TSUKANI", "m4b", Split));
+                Cleanup(Backup);
+                Alert.Success("Audiobook Created");
             }
         }
 
-        public static bool AAXCDecrypt(string key, string iv, bool nfo, bool Cue, bool Cover, bool Split, string kind)
+        public static bool AAXCDecrypt(string key, string iv, bool nfo, bool Cue, bool Cover, bool Split)
         {
             string root = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
@@ -59,23 +47,27 @@ namespace Plus
                 Directory.CreateDirectory(Path.Combine(root, "Audiobooks"));
             }
 
-            var file = Directory.GetFiles($@"{AppDomain.CurrentDomain.BaseDirectory}src\data\dump\", $"*.{kind}")[0];
+            var file = Directory.GetFiles($@"{AppDomain.CurrentDomain.BaseDirectory}src\data\dump\", "*.aaxc")[0];
 
 
             string filename = Other.SoftWare(@"src\tools\mediainfo.exe", $"\"{file}\" --Inform=General;%Album%", false);
-            filename = filename.Trim().Replace(":", " -");
-            string t1, t2, t3 = string.Empty;
+            
+
             try
             {
-                t1 = filename.Split(",").Last().Trim();
-                t2 = t1.Replace(t1, null).Replace(",", null).Split(":").Last().Trim();
-                t3 = filename.Replace(t1, null).Replace(t2, null).Replace(":", null).Replace(",", null).Trim();
+                var _filename = Get.AaxInformation(file);
+                var title = _filename[0];
+                _filename[0] = _filename[0].Trim().Replace(":", " -");
+                string placeholder = _filename[1].Replace("(Unabridged)", string.Empty);
+                if (placeholder.Length < 2)
+                    placeholder = string.Concat("0", placeholder);
+                var _file = ($"{_filename[2]} [{placeholder}] {_filename[3]}");
+                filename = _file.Trim();
 
-                filename = ($"{t2} [{t1}] {t3}");
             }
             catch
             {
-                //
+                filename = filename.Trim().Replace(":", " -");
             }
             Alert.Success(filename);
 
@@ -157,10 +149,10 @@ namespace Plus
             }
         }
 
-        public static void Cleanup(bool bak, string kind)
+        public static void Cleanup(bool bak)
         {
 
-            string aaxc = Directory.GetFiles($@"{AppDomain.CurrentDomain.BaseDirectory}src\data\dump\", $"*.{kind}")[0];
+            string aaxc = Directory.GetFiles($@"{AppDomain.CurrentDomain.BaseDirectory}src\data\dump\", "*.aaxc")[0];
             string voucher = Directory.GetFiles($@"{AppDomain.CurrentDomain.BaseDirectory}src\data\dump\", "*.voucher")[0];
             if (!bak)
             {

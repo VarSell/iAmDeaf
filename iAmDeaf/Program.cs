@@ -16,7 +16,7 @@ namespace Workings
     public class iAmDeaf
     {
         public const string mark = "iAmDeaf";
-        public const string version = "2.0.0";
+        public const string version = "2.0.1";
     }
 }
 
@@ -79,6 +79,8 @@ namespace Main
 
             Console.CursorVisible = false;
 
+
+            
             string[] filename;
             string title, file = string.Empty;
             string Codec = "m4b";
@@ -167,7 +169,7 @@ namespace Main
             Thread THR1 = new Thread(() => Create.AudioBook(bytes, aax, file, Codec, Split));
             THR1.Priority = ThreadPriority.AboveNormal;
 
-            Thread Lavf_Monitor = new Thread(() => Get.Monitor(String.Concat(@"src\data\dump\", Process.GetCurrentProcess().Id, $".{Codec}")));
+            Thread Lavf_Monitor = new Thread(() => Get.Monitor($"{Path.Combine(root, "src\\data\\dump")}\\{Process.GetCurrentProcess().Id.ToString()}.mp3"));
 
 
             if (CueEnabled == true)
@@ -255,6 +257,4 @@ namespace Main
         public string Codec { get; set; }
         public bool Split { get; set; }
     }
-
-    
 }
