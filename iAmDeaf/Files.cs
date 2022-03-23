@@ -63,8 +63,7 @@ namespace Files
                     }
                     nfoPart[12] = $"{mp3enc} MP3";
                 }
-                nfoPart[13] = (TagLib.File.Create(file.Replace("\"", ""))).Properties.AudioBitrate.ToString();//SoftWare(mi, $"{file} --Inform=Audio;%BitRate%", false);   //encoded bitrate
-                
+                nfoPart[13] = (TagLib.File.Create(file.Replace("\"", ""))).Properties.AudioBitrate.ToString();
                 nfoPart[14] = SoftWare(mi, $"{aax} --Inform=General;%Track_More%", false); //comment (Track_More)
             }
             catch (Exception ex)
@@ -102,7 +101,7 @@ Publisher's Summary
             return nfo;
         }
 
-        public static void Cuev2(string aax, string file, string codec, string format)
+        public static void Cue(string aax, string file, string codec, string format)
         {
             var ch = SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\mediainfo.exe", $"\"{aax}\"", false);
             //split the chapters
@@ -134,21 +133,16 @@ Publisher's Summary
                 chapterFile += $"CHAPTER{chndx[i]}={chtm[i]}\nCHAPTER{chndx[i]}NAME={chnm[i]}"+Environment.NewLine;
             }
 
-
             File.WriteAllText(_temp, chapterFile.Trim());
-            string cuegen = $@"{root}src\tools\cuegen.vbs {root}src\\data\\dump\\{PID}.txt";
-            var CUEGEN = Process.Start(@"cmd", @"/c " + cuegen);
+            string cueArg = $@"{root}src\tools\cuegen.vbs {root}src\\data\\dump\\{PID}.txt";
+            var cueGen = Process.Start(@"cmd", @"/c " + cueArg);
 
-            CUEGEN.WaitForExit();
-            CUEGEN.Close();
-            CUEGEN.Dispose();
+            cueGen.WaitForExit();
+            cueGen.Close();
+            cueGen.Dispose();
 
             string[] cue = File.ReadAllLines($"{root}src\\data\\dump\\{PID}.cue");
-
-
             cue[0] = $"FILE \"{Path.GetFileName($"{file}.{codec}")}\" {format.ToUpper()}";
-
-
             File.WriteAllLines($"{file}.cue", cue);
 
             if (!File.Exists($"{file}.cue"))
@@ -164,43 +158,6 @@ Publisher's Summary
             File.Delete($@"{root}src\data\dump\{PID}.txt");
         }
 
-        public static void Cue(string aax, string file, string codec, string format)
-        {
-            string PID = Process.GetCurrentProcess().Id.ToString();
-
-            SoftWare($@"{root}src\tools\ffmpeg.exe", $" -i \"{aax}\" -c copy -an {root}src\\data\\dump\\{PID}.mkv -y", true);
-
-            SoftWare($@"{root}src\tools\mkvextract.exe", $" {root}src\\data\\dump\\{PID}.mkv chapters -s {root}src\\data\\dump\\{PID}.txt", true);
-
-            string cuegen = $@"{root}src\tools\cuegen.vbs {root}src\\data\\dump\\{PID}.txt";
-
-            var CUEGEN = Process.Start(@"cmd", @"/c " + cuegen);
-
-            CUEGEN.WaitForExit();
-            CUEGEN.Close();
-            CUEGEN.Dispose();
-
-            string[] cue = File.ReadAllLines($"{root}src\\data\\dump\\{PID}.cue");
-
-
-            cue[0] = $"FILE \"{Path.GetFileName($"{file}.{codec}")}\" {format.ToUpper()}";
-
-            
-            File.WriteAllLines($"{file}.cue", cue);
-
-            if (!File.Exists($"{file}.cue"))
-            {
-                Alert.Error("Cue Failed");
-            }
-            else
-            {
-                Alert.Success("Cue Created");
-            }
-
-            File.Delete($@"{root}src\data\dump\{PID}.cue");
-            File.Delete($@"{root}src\data\dump\{PID}.txt");
-            File.Delete($@"{root}src\data\dump\{PID}.mkv");
-        }
 
         public static void AudioBook(string bytes, string aax, string file, string ext = "m4b", bool split = false)
         {
@@ -265,30 +222,32 @@ Publisher's Summary
 
             if (ext == "mp3" && split == false)
             {
+                string PID = Process.GetCurrentProcess().Id.ToString();
+                string _temp = Path.Combine(root, "src\\data\\dump", $"{PID}.mp4");
+                aaxFile.ConvertToMp4a(File.Open($"{_temp}", FileMode.OpenOrCreate, FileAccess.ReadWrite));
+                aaxFile.Close();
+
                 Load.LoadLameDLL();
 
-                string temp = TempMP4(bytes, aax);
-                string PID = Process.GetCurrentProcess().Id.ToString();
-
-                TagLib.File mp4 = TagLib.File.Create(temp);
+                TagLib.File mp4 = TagLib.File.Create(_temp);
                 int br = Int32.Parse(string.Concat(mp4.Properties.AudioBitrate.ToString(), "000"));
 
-                string nrt = SoftWare(@"src\tools\mediainfo.exe", $"\"{temp}\" --Inform=General;%nrt%", false);
-                string comment = SoftWare(@"src\tools\mediainfo.exe", $"\"{temp}\" --Inform=General;%Track_More%", false);
+                string nrt = SoftWare(@"src\tools\mediainfo.exe", $"\"{_temp}\" --Inform=General;%nrt%", false);
+                string comment = SoftWare(@"src\tools\mediainfo.exe", $"\"{_temp}\" --Inform=General;%Track_More%", false);
 
                 Alert.Notify($"Lavf59.16.100 - {br.ToString()[..3]}_CBR");
 
                 MediaFoundationApi.Startup();
                 var aacFilePath = $@"src\data\dump\{PID}.mp3";
-                using (var reader = new MediaFoundationReader(temp))
+                using (var reader = new MediaFoundationReader(_temp))
                 {
                     MediaFoundationEncoder.EncodeToMp3(reader, aacFilePath, br);
                 }
 
                 Alert.Notify("Tagging File");
 
-                SoftWare(@"src\tools\ffmpeg.exe", $"-i \"{temp}\" -i src\\data\\dump\\{PID}.mp3 -map 1 -metadata Narrator=\"{nrt}\" -metadata Comment=\"{comment.Replace("\"", string.Empty)}\" -c copy \"{file}.mp3\" -y", true);
-                SoftWare($"src\\tools\\ffmpeg.exe", $"-i \"{temp}\" -map 0:v -map -0:V -c copy src\\data\\dump\\{PID}.jpg -y", true);
+                SoftWare(@"src\tools\ffmpeg.exe", $"-i \"{_temp}\" -i src\\data\\dump\\{PID}.mp3 -map 1 -metadata Narrator=\"{nrt}\" -metadata Comment=\"{comment.Replace("\"", string.Empty)}\" -c copy \"{file}.mp3\" -y", true);
+                SoftWare($"src\\tools\\ffmpeg.exe", $"-i \"{_temp}\" -map 0:v -map -0:V -c copy src\\data\\dump\\{PID}.jpg -y", true);
 
 
                 if (!(Embed.SetCoverArt(string.Concat(file, ".mp3"), $"{root}src\\data\\dump\\{PID}.jpg")))
@@ -327,15 +286,6 @@ Publisher's Summary
                     File.Delete($@"src\data\dump\{Process.GetCurrentProcess().Id}");
                 }
             }
-        }
-
-        internal static string TempMP4(string bytes, string aax)
-        {
-            string file = @$"src\data\dump\{Process.GetCurrentProcess().Id}.mp4";
-            var aaxFile = new AaxFile(File.OpenRead(aax));
-            aaxFile.SetDecryptionKey(bytes);
-            aaxFile.ConvertToMp4a(File.Open(file, FileMode.OpenOrCreate, FileAccess.ReadWrite));
-            return file;
         }
     }
 
