@@ -223,32 +223,39 @@ Publisher's Summary
             if (ext == "mp3" && split == false)
             {
                 string PID = Process.GetCurrentProcess().Id.ToString();
-                string _temp = Path.Combine(root, "src\\data\\dump", $"{PID}.mp4");
-                aaxFile.ConvertToMp4a(File.Open($"{_temp}", FileMode.OpenOrCreate, FileAccess.ReadWrite));
-                aaxFile.Close();
-
-                Load.LoadLameDLL();
-
-                TagLib.File mp4 = TagLib.File.Create(_temp);
-                int br = Int32.Parse(string.Concat(mp4.Properties.AudioBitrate.ToString(), "000"));
-
-                string nrt = SoftWare(@"src\tools\mediainfo.exe", $"\"{_temp}\" --Inform=General;%nrt%", false);
-                string comment = SoftWare(@"src\tools\mediainfo.exe", $"\"{_temp}\" --Inform=General;%Track_More%", false);
-
-                Alert.Notify($"Lavf59.16.100 - {br.ToString()[..3]}_CBR");
-
-                MediaFoundationApi.Startup();
-                var aacFilePath = $@"src\data\dump\{PID}.mp3";
-                using (var reader = new MediaFoundationReader(_temp))
+                //Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+                try
                 {
-                    MediaFoundationEncoder.EncodeToMp3(reader, aacFilePath, br);
+                    string _temp = Path.Combine(root, "src\\data\\dump", $"{PID}.mp4");
+                    aaxFile.ConvertToMp4a(File.Open($"{_temp}", FileMode.OpenOrCreate, FileAccess.ReadWrite));
+                    aaxFile.Close();
+
+                    Load.LoadLameDLL();
+
+                    TagLib.File mp4 = TagLib.File.Create(_temp);
+                    int br = Int32.Parse(string.Concat(mp4.Properties.AudioBitrate.ToString(), "000"));
+
+                    string nrt = SoftWare(@"src\tools\mediainfo.exe", $"\"{_temp}\" --Inform=General;%nrt%", false);
+                    string comment = SoftWare(@"src\tools\mediainfo.exe", $"\"{_temp}\" --Inform=General;%Track_More%", false);
+
+                    Alert.Notify($"Lavf59.16.100 - {br.ToString()[..3]}_CBR");
+                    
+                    MediaFoundationApi.Startup();
+                    var aacFilePath = $@"{root}\\src\data\dump\{PID}.mp3";
+                    using (var reader = new MediaFoundationReader(_temp))
+                    {
+                        MediaFoundationEncoder.EncodeToMp3(reader, aacFilePath, br);
+                    }
+
+                    Alert.Notify("Tagging File");
+
+                    SoftWare(@"src\tools\ffmpeg.exe", $"-i \"{_temp}\" -i src\\data\\dump\\{PID}.mp3 -map 1 -metadata Narrator=\"{nrt}\" -metadata Comment=\"{comment.Replace("\"", string.Empty)}\" -c copy \"{file}.mp3\" -y", true);
+                    SoftWare($"src\\tools\\ffmpeg.exe", $"-i \"{_temp}\" -map 0:v -map -0:V -c copy src\\data\\dump\\{PID}.jpg -y", true);
                 }
-
-                Alert.Notify("Tagging File");
-
-                SoftWare(@"src\tools\ffmpeg.exe", $"-i \"{_temp}\" -i src\\data\\dump\\{PID}.mp3 -map 1 -metadata Narrator=\"{nrt}\" -metadata Comment=\"{comment.Replace("\"", string.Empty)}\" -c copy \"{file}.mp3\" -y", true);
-                SoftWare($"src\\tools\\ffmpeg.exe", $"-i \"{_temp}\" -map 0:v -map -0:V -c copy src\\data\\dump\\{PID}.jpg -y", true);
-
+                catch (Exception ex)
+                {
+                    Alert.Error(ex.Message);
+                }
 
                 if (!(Embed.SetCoverArt(string.Concat(file, ".mp3"), $"{root}src\\data\\dump\\{PID}.jpg")))
                 {
