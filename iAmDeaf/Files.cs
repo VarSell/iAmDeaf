@@ -108,7 +108,7 @@ Publisher's Summary
             ch = ch.Substring(ch.IndexOf("Frame count"));
 
             string PID = Process.GetCurrentProcess().Id.ToString();
-            string _temp = Path.Combine(AppContext.BaseDirectory, $"src\\data\\dump\\{PID}.txt");
+            string _temp = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"src\\data\\dump\\{PID}.txt");
             File.WriteAllText(_temp, ch);
 
             string[] chpts = File.ReadAllLines(_temp);
@@ -211,7 +211,7 @@ Publisher's Summary
 
                             newSplitCallback.OutputFile = File.OpenWrite(Path.Combine(dir, fileName));
                         }
-                        File.Delete($@"src\data\dump\{Process.GetCurrentProcess().Id}");
+                        File.Delete(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $@"src\data\dump\{Process.GetCurrentProcess().Id}"));
                     }
                     catch (Exception ex)
                     {
@@ -235,8 +235,8 @@ Publisher's Summary
                     TagLib.File mp4 = TagLib.File.Create(_temp);
                     int br = Int32.Parse(string.Concat(mp4.Properties.AudioBitrate.ToString(), "000"));
 
-                    string nrt = SoftWare(@"src\tools\mediainfo.exe", $"\"{_temp}\" --Inform=General;%nrt%", false);
-                    string comment = SoftWare(@"src\tools\mediainfo.exe", $"\"{_temp}\" --Inform=General;%Track_More%", false);
+                    string nrt = SoftWare($@"{root}\\src\tools\mediainfo.exe", $"\"{_temp}\" --Inform=General;%nrt%", false);
+                    string comment = SoftWare($@"{root}\\src\tools\mediainfo.exe", $"\"{_temp}\" --Inform=General;%Track_More%", false);
 
                     Alert.Notify($"Lavf59.16.100 - {br.ToString()[..3]}_CBR");
                     
@@ -249,8 +249,8 @@ Publisher's Summary
 
                     Alert.Notify("Tagging File");
 
-                    SoftWare(@"src\tools\ffmpeg.exe", $"-i \"{_temp}\" -i src\\data\\dump\\{PID}.mp3 -map 1 -metadata Narrator=\"{nrt}\" -metadata Comment=\"{comment.Replace("\"", string.Empty)}\" -c copy \"{file}.mp3\" -y", true);
-                    SoftWare($"src\\tools\\ffmpeg.exe", $"-i \"{_temp}\" -map 0:v -map -0:V -c copy src\\data\\dump\\{PID}.jpg -y", true);
+                    SoftWare($@"{root}\src\tools\ffmpeg.exe", $"-i \"{_temp}\" -i  \"{root}\\src\\data\\dump\\{PID}.mp3\" -map 1 -metadata Narrator=\"{nrt}\" -metadata Comment=\"{comment.Replace("\"", string.Empty)}\" -c copy \"{file}.mp3\" -y", true);
+                    SoftWare($@"{root}\src\tools\ffmpeg.exe", $"-i \"{_temp}\" -map 0:v -map -0:V -c copy \"{root}\\src\\data\\dump\\{PID}.jpg\" -y", true);
                 }
                 catch (Exception ex)
                 {
@@ -263,16 +263,16 @@ Publisher's Summary
                 }
 
 
-                File.Delete($"src\\data\\dump\\{PID}.mp4");
-                File.Delete($"src\\data\\dump\\{PID}.mp3");
-                File.Delete($"src\\data\\dump\\{PID}.jpg");
+                File.Delete($@"{root}\\src\\data\\dump\\{PID}.mp4");
+                File.Delete($@"{root}\\src\\data\\dump\\{PID}.mp3");
+                File.Delete($@"{root}\\src\\data\\dump\\{PID}.jpg");
             }
             else
             {
                 if (split && ext == "mp3")
                 {
                     Load.LoadLameDLL();
-                    File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @$"src\data\dump\{Process.GetCurrentProcess().Id}"), Path.GetDirectoryName(file));
+                    File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $@"{root}\\src\data\dump\{Process.GetCurrentProcess().Id}"), Path.GetDirectoryName(file));
 
                     var chapters = aaxFile.GetChapterInfo();
 
@@ -290,7 +290,7 @@ Publisher's Summary
 
                         newSplitCallback.OutputFile = File.OpenWrite(Path.Combine(dir, fileName));
                     }
-                    File.Delete($@"src\data\dump\{Process.GetCurrentProcess().Id}");
+                    File.Delete($@"{root}\\src\data\dump\{Process.GetCurrentProcess().Id}");
                 }
             }
         }
