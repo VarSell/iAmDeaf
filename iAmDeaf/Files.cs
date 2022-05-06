@@ -158,6 +158,43 @@ Publisher's Summary
             File.Delete($@"{root}src\data\dump\{PID}.txt");
         }
 
+        public static void CueV2(string aax, string file, string codec, string format)
+        {
+            string PID = Process.GetCurrentProcess().Id.ToString();
+
+            SoftWare($@"{root}src\tools\ffmpeg.exe", $" -i \"{aax}\" -c copy -an {root}src\\data\\dump\\{PID}.mkv -y", true);
+
+            SoftWare($@"{root}src\tools\mkvextract.exe", $" {root}src\\data\\dump\\{PID}.mkv chapters -s {root}src\\data\\dump\\{PID}.txt", true);
+
+            string cuegen = $@"{root}src\tools\cuegen.vbs {root}src\\data\\dump\\{PID}.txt";
+
+            var CUEGEN = Process.Start(@"cmd", @"/c " + cuegen);
+
+            CUEGEN.WaitForExit();
+            CUEGEN.Close();
+            CUEGEN.Dispose();
+
+            string[] cue = File.ReadAllLines($"{root}src\\data\\dump\\{PID}.cue");
+
+
+            cue[0] = $"FILE \"{Path.GetFileName($"{file}.{codec}")}\" {format.ToUpper()}";
+
+
+            File.WriteAllLines($"{file}.cue", cue);
+
+            if (!File.Exists($"{file}.cue"))
+            {
+                Alert.Error("Cue Failed");
+            }
+            else
+            {
+                Alert.Success("Cue Created");
+            }
+
+            File.Delete($@"{root}src\data\dump\{PID}.cue");
+            File.Delete($@"{root}src\data\dump\{PID}.txt");
+            File.Delete($@"{root}src\data\dump\{PID}.mkv");
+        }
 
         public static void AudioBook(string bytes, string aax, string file, string ext = "m4b", bool split = false)
         {
@@ -394,13 +431,23 @@ Publisher's Summary
             string bytes = string.Empty;
             try
             {
-                bytes = AaxActivationClient.Instance.ResolveActivationBytes(checksum).Result.ToString();
+                var d = new AAXHash.Data();
+                d.Reverse(aax);
+                bytes = d.bytes;
             }
-            catch(Exception ex)
+            catch
             {
-                Alert.Error("Key not found in offline log: "+ex.Message);
-                return string.Empty;
+                try
+                {
+                    bytes = AaxActivationClient.Instance.ResolveActivationBytes(checksum).Result.ToString();
+                }
+                catch (Exception ex)
+                {
+                    Alert.Error("Key not found in offline log: "+ex.Message);
+                    return string.Empty;
+                }
             }
+            
             File.AppendAllText(Path.Combine(root, @"src\data\KeyHistory\log"), $"{checksum}\n{bytes}" + Environment.NewLine);
             return bytes;
         }
