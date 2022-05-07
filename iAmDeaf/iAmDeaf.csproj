@@ -20,6 +20,8 @@
 
   <ItemGroup>
     <PackageReference Include="Aax.Activation.ApiClient" Version="1.0.0" />
+    <PackageReference Include="AAXClean" Version="0.4.2" />
+    <PackageReference Include="AAXClean.Codecs" Version="0.2.1" />
     <PackageReference Include="NAudio" Version="2.0.1" />
     <PackageReference Include="NAudio.Lame" Version="2.0.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
@@ -27,8 +29,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="AAXClean">
-      <HintPath>..\..\..\..\Downloads\AAXCleanM\bin\x64\Release\net5.0\AAXClean.dll</HintPath>
+    <Reference Include="AAXHash">
+      <HintPath>..\..\AAXHash\AAXHash\bin\Release\net6.0\win-x64\AAXHash.dll</HintPath>
     </Reference>
   </ItemGroup>
 

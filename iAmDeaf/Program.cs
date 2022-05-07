@@ -16,7 +16,7 @@ namespace Workings
     public class iAmDeaf
     {
         public const string mark = "iAmDeaf";
-        public const string version = "2.0.1";
+        public const string version = "2.0.2";
     }
 }
 
@@ -42,15 +42,12 @@ namespace Main
                     catch (Exception ex)
                     {
                         Alert.Error(ex.Message);
-                        Alert.Error("Missing ASIN");
-                        Alert.Notify("Usage: iAmDeaf -c <ASIN>");
                     }
 
                     return 0;
                 }
 
                 // AAXC AAX DIVIDER
-
                 foreach (Object obj in args)
                 {
                     aax = obj.ToString();
@@ -79,8 +76,6 @@ namespace Main
 
             Console.CursorVisible = false;
 
-
-            
             string[] filename;
             string title, file = string.Empty;
             string Codec = "m4b";
@@ -92,7 +87,6 @@ namespace Main
 
             Alert.Notify("Parsing File");
 
-            
             Rootobject Settings = JsonConvert.DeserializeObject<Rootobject>(File.ReadAllText($"{root}\\src\\config.json"));
             string structure = $"{Settings.Title[0].T1} {Settings.Title[0].T2} {Settings.Title[0].T3} {Settings.Title[0].T4} {Settings.Title[0].T5}";
             structure = Regex.Replace(structure.Replace("null", null), @"\s+", " ").Trim();
@@ -117,6 +111,8 @@ namespace Main
 
                     Alert.Success(file);
 
+                    file = file.TrimEnd('.');
+
                     Codec = Settings.Output[0].Codec;
                     Split = Settings.Output[0].Split;
                     CueEnabled = Settings.Files[0].Cue;
@@ -132,8 +128,8 @@ namespace Main
                     filename = Get.AaxInformation(aax);
                     title = filename[0];
                     filename[0] = filename[0].Trim().Replace(":", " -");
-                    file = ($"{filename[2]} [{filename[1]}] {filename[3]}");
-                    Alert.Success(file.Trim());
+                    file = ($"{filename[2]} [{filename[1]}] {filename[3].TrimEnd('.')}");
+                    Alert.Success(file);
                     var _file = file;
                     file = $"{hostDir}\\{file.Trim()}\\{file.Trim()}";
                     System.IO.Directory.CreateDirectory($"{hostDir}\\{_file.Trim()}");
@@ -143,7 +139,7 @@ namespace Main
             {
                 string info = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Album%", false);
                 title = info;
-                info = info.Trim().Replace(":", " -");
+                info = info.Trim().Replace(":", " -").TrimEnd('.');
                 file = info;
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"  {file}");
@@ -160,12 +156,18 @@ namespace Main
             }
 
             string bytes = Get.ActivationBytes(aax);
-            if (bytes == string.Empty)
+            
+            if (bytes == String.Empty)
             {
-                return 0;
+                bytes = Get.ActivationBytes(aax);
+                if (bytes == string.Empty)
+                {
+                    return 0;
+                }
             }
+
             Stopwatch sw = Stopwatch.StartNew();
-            Thread THR = new Thread(() => Create.Cue(aax, file, Codec, format));
+            Thread THR = new Thread(() => Create.CueV2(aax, file, Codec, format)); // V2
             Thread THR1 = new Thread(() => Create.AudioBook(bytes, aax, file, Codec, Split));
             THR1.Priority = ThreadPriority.AboveNormal;
 
@@ -179,6 +181,8 @@ namespace Main
             }
 
             Alert.Notify("Creating AudioBook");
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            stopwatch.Start();
             THR1.Start();
 
             if (Codec != "m4b" && !Split)
@@ -188,7 +192,6 @@ namespace Main
             }
             THR1.Join();
             
-
             if (CoverEnabled == true)
             {
                 Alert.Notify("Extracting JPG");
