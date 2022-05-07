@@ -1,4 +1,5 @@
 ﻿using AAXClean;
+using AAXClean.Codecs;
 using System;
 using System.Text;
 using System.Diagnostics;
@@ -100,7 +101,7 @@ Publisher's Summary
 ";
             return nfo;
         }
-
+        
         public static void Cue(string aax, string file, string codec, string format)
         {
             var ch = SoftWare($"{AppDomain.CurrentDomain.BaseDirectory}src\\tools\\mediainfo.exe", $"\"{aax}\"", false);
@@ -134,12 +135,12 @@ Publisher's Summary
             }
 
             File.WriteAllText(_temp, chapterFile.Trim());
-            string cueArg = $@"{root}src\tools\cuegen.vbs {root}src\\data\\dump\\{PID}.txt";
-            var cueGen = Process.Start(@"cmd", @"/c " + cueArg);
+            string cueParams = $@"{root}src\tools\cuegen.vbs {root}src\\data\\dump\\{PID}.txt";
+            var CueGen = Process.Start(@"cmd", @"/c " + cueParams);
 
-            cueGen.WaitForExit();
-            cueGen.Close();
-            cueGen.Dispose();
+            CueGen.WaitForExit();
+            CueGen.Close();
+            CueGen.Dispose();
 
             string[] cue = File.ReadAllLines($"{root}src\\data\\dump\\{PID}.cue");
             cue[0] = $"FILE \"{Path.GetFileName($"{file}.{codec}")}\" {format.ToUpper()}";
@@ -166,13 +167,13 @@ Publisher's Summary
 
             SoftWare($@"{root}src\tools\mkvextract.exe", $" {root}src\\data\\dump\\{PID}.mkv chapters -s {root}src\\data\\dump\\{PID}.txt", true);
 
-            string cuegen = $@"{root}src\tools\cuegen.vbs {root}src\\data\\dump\\{PID}.txt";
+            string cuegenParams = $@"{root}src\tools\cuegen.vbs {root}src\\data\\dump\\{PID}.txt";
 
-            var CUEGEN = Process.Start(@"cmd", @"/c " + cuegen);
+            var CueGen = Process.Start(@"cmd", @"/c " + cuegenParams);
 
-            CUEGEN.WaitForExit();
-            CUEGEN.Close();
-            CUEGEN.Dispose();
+            CueGen.WaitForExit();
+            CueGen.Close();
+            CueGen.Dispose();
 
             string[] cue = File.ReadAllLines($"{root}src\\data\\dump\\{PID}.cue");
 
@@ -198,7 +199,8 @@ Publisher's Summary
 
         public static void AudioBook(string bytes, string aax, string file, string ext = "m4b", bool split = false)
         {
-
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            stopwatch.Start();
 
             if (!(ext == "m4b" || ext == "mp3"))
             {
@@ -316,7 +318,7 @@ Publisher's Summary
                     LameConfig lameConfig = new LameConfig();
                     lameConfig.Preset = Get.Preset(aax);
 
-
+                    
                     aaxFile.ConvertToMultiMp3(aaxFile.GetChapterInfo(), NewSplit, lameConfig);
 
                     static void NewSplit(NewSplitCallback newSplitCallback)
@@ -330,6 +332,8 @@ Publisher's Summary
                     File.Delete($@"{root}\\src\data\dump\{Process.GetCurrentProcess().Id}");
                 }
             }
+            stopwatch.Stop();
+            Alert.Notify($"Decryption: {stopwatch.ElapsedMilliseconds.ToString()}ms");
         }
     }
 
@@ -431,9 +435,9 @@ Publisher's Summary
             string bytes = string.Empty;
             try
             {
-                var d = new AAXHash.Data();
-                d.Reverse(aax);
-                bytes = d.bytes;
+                var h = new AAXHash.Data();
+                h.Reverse(aax);
+                bytes = h.bytes;
             }
             catch
             {
