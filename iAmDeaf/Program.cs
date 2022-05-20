@@ -128,7 +128,7 @@ namespace Main
                     filename = Get.AaxInformation(aax);
                     title = filename[0];
                     filename[0] = filename[0].Trim().Replace(":", " -");
-                    file = ($"{filename[2]} [{filename[1]}] {filename[3].TrimEnd('.')}");
+                    file = ($"{filename[2]} [{filename[1]}] {filename[3].TrimEnd('.')}").Replace("?", "");
                     Alert.Success(file);
                     var _file = file;
                     file = $"{hostDir}\\{file.Trim()}\\{file.Trim()}";
@@ -139,7 +139,7 @@ namespace Main
             {
                 string info = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Album%", false);
                 title = info;
-                info = info.Trim().Replace(":", " -").TrimEnd('.');
+                info = info.Trim().Replace(":", " -").Replace("?", "").TrimEnd('.');
                 file = info;
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"  {file}");
@@ -167,7 +167,7 @@ namespace Main
             }
 
             Stopwatch sw = Stopwatch.StartNew();
-            Thread THR = new Thread(() => Create.CueV2(aax, file, Codec, format)); // V2
+            Thread THR = new Thread(() => Create.CueV2(aax, file, Codec, format));
             Thread THR1 = new Thread(() => Create.AudioBook(bytes, aax, file, Codec, Split));
             THR1.Priority = ThreadPriority.AboveNormal;
 
@@ -215,7 +215,8 @@ namespace Main
                 else
                 {
                     string[] extensions = { string.Concat('.', Codec) };
-                    var files = Directory.GetFiles(Path.GetDirectoryName(file), ".").Where(f => Array.Exists(extensions, e => f.EndsWith(e))).ToArray();
+                    var files = Directory.GetFiles(Path.GetDirectoryName(file), ".")
+                        .Where(f => Array.Exists(extensions, e => f.EndsWith(e))).ToArray();
                     Alert.Notify("Generating NFO");
                     nfo = Create.nfo(aax, files[0], Split);
                 }
