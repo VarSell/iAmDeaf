@@ -9,6 +9,8 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using Files;
 using static Other;
+using iAmDeaf.Audible;
+using CsAtomReader;
 
 
 namespace Workings
@@ -74,6 +76,7 @@ namespace Main
             }
 
 
+
             Console.CursorVisible = false;
 
             string[] filename;
@@ -87,27 +90,41 @@ namespace Main
 
             Alert.Notify("Parsing File");
 
-            Rootobject Settings = JsonConvert.DeserializeObject<Rootobject>(File.ReadAllText($"{root}\\src\\config.json"));
+            JsonSettings Settings = JsonConvert.DeserializeObject<JsonSettings>(File.ReadAllText($"{root}\\src\\config.json"));
             string structure = $"{Settings.Title[0].T1} {Settings.Title[0].T2} {Settings.Title[0].T3} {Settings.Title[0].T4} {Settings.Title[0].T5}";
             structure = Regex.Replace(structure.Replace("null", null), @"\s+", " ").Trim();
             structure = structure.Replace(" ", " - ");
+
+            
+            string aaxTitle = string.Empty;
+            using (FileStream stream = new FileStream(aax, FileMode.Open))
+            {
+                aaxTitle = new AtomReader(stream)
+                .GetMetaAtomValue(AtomReader.TitleTypeName).Replace(":", " -"); // Title
+            }
 
             try
             {
                 if (Settings.DEFAULT)
                 {
-                    string Author = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Performer%", false).Trim();                                      //Author       
-                    string Title = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Album%", false).Trim().Replace(":", " -");                        //Title         
-                    string Year = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%rldt%", false).Trim();                                             //Year        
-                    Year = DateTime.ParseExact(Year, "dd-MMM-yyyy", CultureInfo.InvariantCulture).ToString("yyyy");          
-                    string Narrator = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%nrt%", false).Trim();                                          //Narrator         
-                    string Bitrate = (Int32.Parse(SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=Audio;%BitRate%", false).Trim()) / 1000).ToString() + "K";  //Bitrate            //Bitrate
+                    string aaxAuthor = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Performer%", false).Trim();                                      //Author       
+                          
+                    string aaxYear = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%rldt%", false).Trim();                                             //Year        
+                    aaxYear = DateTime.ParseExact(aaxYear, "dd-MMM-yyyy", CultureInfo.InvariantCulture).ToString("yyyy");          
+                    string aaxNarrator = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%nrt%", false).Trim();                                          //Narrator         
+                    string aaxBitrate = (Int32.Parse(SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=Audio;%BitRate%", false).Trim()) / 1000).ToString() + "K";  //Bitrate            //Bitrate
 
-                    file = structure.Replace("Author", Author);
-                    file = file.Replace("Title", Title);
-                    file = file.Replace("Year", Year);
-                    file = file.Replace("Narrator", Narrator);
-                    file = file.Replace("Bitrate", Bitrate);
+                    /*string[] onlineDetails = Scraper.Scrape(SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Album%", false));
+
+                    string oAuthor = onlineDetails[4];
+                    string oTitle = onlineDetails[2];
+                    file = string.Concat(oAuthor.Trim(), " - ", oTitle.Trim()).Replace("?", "");*/
+
+                    file = structure.Replace("Author", aaxAuthor);
+                    file = file.Replace("Title", aaxTitle);
+                    file = file.Replace("Year", aaxYear);
+                    file = file.Replace("Narrator", aaxNarrator);
+                    file = file.Replace("Bitrate", aaxBitrate);
 
                     Alert.Success(file);
 
@@ -137,42 +154,48 @@ namespace Main
             }
             catch
             {
-                string info = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Album%", false);
-                title = info;
-                info = info.Trim().Replace(":", " -").Replace("?", "").TrimEnd('.');
-                file = info;
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"  {file}");
-                Console.ResetColor();
-                file = $"{hostDir}\\{info}\\{file.Trim()}";
-                System.IO.Directory.CreateDirectory($"{hostDir}\\{info}");
+                title = aaxTitle;
+                aaxTitle = aaxTitle.Trim()
+                    .Replace(":", " -")
+                    .Replace("?", "")
+                    .TrimEnd('.');
+                file = aaxTitle;
+                Alert.Success(file);
+                file = $"{hostDir}\\{aaxTitle}\\{file.Trim()}";
+                Directory.CreateDirectory($"{hostDir}\\{aaxTitle}");
             }
 
             string format = string.Empty; ;
             switch (Codec)
             {
-                case "m4b": format = "MP4"; break;
-                case "mp3": format = "MP3"; break;
+                case "m4b":
+                    format = "MP4";
+                    break;
+                case "mp3":
+                    format = "MP3";
+                    break;
             }
 
             string bytes = Get.ActivationBytes(aax);
-            
-            if (bytes == String.Empty)
+
+            if (bytes == string.Empty)
             {
-                bytes = Get.ActivationBytes(aax);
-                if (bytes == string.Empty)
-                {
-                    return 0;
-                }
+                return 0;
             }
 
             Stopwatch sw = Stopwatch.StartNew();
-            Thread THR = new Thread(() => Create.CueV2(aax, file, Codec, format));
-            Thread THR1 = new Thread(() => Create.AudioBook(bytes, aax, file, Codec, Split));
-            THR1.Priority = ThreadPriority.AboveNormal;
-
-            Thread Lavf_Monitor = new Thread(() => Get.Monitor($"{Path.Combine(root, "src\\data\\dump")}\\{Process.GetCurrentProcess().Id.ToString()}.mp3"));
-
+            Thread THR = new Thread(() =>
+            {
+                Create.CueV2(aax, file, Codec, format);
+            });
+            Thread THR1 = new Thread(() =>
+            {
+                Create.AudioBook(bytes, aax, file, Codec, Split);
+            });
+            Thread Lavf_Monitor = new Thread(() =>
+            {
+                Get.Monitor($"{Path.Combine(root, "src\\data\\dump")}\\{Process.GetCurrentProcess().Id.ToString()}.mp3");
+            });
 
             if (CueEnabled == true)
             {
@@ -232,7 +255,7 @@ namespace Main
         }
     }
 
-    public class Rootobject
+    public class JsonSettings
     {
         public bool DEFAULT { get; set; }
         public Title[] Title { get; set; }
