@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
 using System.Globalization;
 using System.Threading;
@@ -11,6 +8,12 @@ using Files;
 using static Other;
 using iAmDeaf.Audible;
 using CsAtomReader;
+using iAmDeaf.Interfaces;
+using iAmDeaf.Codecs;
+using iAmDeaf.Plus;
+
+using Workings;
+
 
 
 namespace Workings
@@ -18,19 +21,20 @@ namespace Workings
     public class iAmDeaf
     {
         public const string mark = "iAmDeaf";
-        public const string version = "2.0.2";
+        public const string version = "2.0.3";
     }
 }
 
 namespace Main
 {
-    using Workings;
-    class Program
+    internal class Program
     {
         public static string root = AppDomain.CurrentDomain.BaseDirectory;
+        public static iAmDeaf.Config.Settings? settings;
         static int Main(string[] args)
         {
             string aax = string.Empty;
+
 
             if (args.Length > 0)
             {
@@ -39,17 +43,15 @@ namespace Main
                     try
                     {
                         Alert.Notify($"AAXC Decryption: {args[1]}");
-                        Plus.Catagolue.Download(args[1]);
+                        Catalogue.Download(args[1]);
                     }
                     catch (Exception ex)
                     {
                         Alert.Error(ex.Message);
                     }
-
                     return 0;
                 }
 
-                // AAXC AAX DIVIDER
                 foreach (Object obj in args)
                 {
                     aax = obj.ToString();
@@ -68,30 +70,27 @@ namespace Main
                 return 0;
             }
 
-            // Local AAXC check
             if (Path.GetExtension(aax) == ".aaxc")
             {
-                PlusLocal.LocalAAXC.GetPaths(aax);
-                return 0;
+                //Local.GetPaths(aax);
+                //return 0;
             }
-
-
 
             Console.CursorVisible = false;
 
             string[] filename;
             string title, file = string.Empty;
-            string Codec = "m4b";
-            bool CueEnabled = true;
-            bool NfoEnabled = true;
-            bool CoverEnabled = true;
-            bool Split = false;
+            string codec = "m4b";
+            bool cueEnabled = true;
+            bool nfoEnabled = true;
+            bool coverEnabled = true;
+            bool split = false;
             string hostDir = Path.GetDirectoryName(aax);
 
             Alert.Notify("Parsing File");
-
-            JsonSettings Settings = JsonConvert.DeserializeObject<JsonSettings>(File.ReadAllText($"{root}\\src\\config.json"));
-            string structure = $"{Settings.Title[0].T1} {Settings.Title[0].T2} {Settings.Title[0].T3} {Settings.Title[0].T4} {Settings.Title[0].T5}";
+            
+            settings = JsonConvert.DeserializeObject<iAmDeaf.Config.Settings>(File.ReadAllText($"{root}\\src\\config.json"));
+            string structure = $"{settings.Title[0].T1} {settings.Title[0].T2} {settings.Title[0].T3} {settings.Title[0].T4} {settings.Title[0].T5}";
             structure = Regex.Replace(structure.Replace("null", null), @"\s+", " ").Trim();
             structure = structure.Replace(" ", " - ");
 
@@ -100,12 +99,12 @@ namespace Main
             using (FileStream stream = new FileStream(aax, FileMode.Open))
             {
                 aaxTitle = new AtomReader(stream)
-                .GetMetaAtomValue(AtomReader.TitleTypeName).Replace(":", " -"); // Title
+                .GetMetaAtomValue(AtomReader.TitleTypeName).Replace(":", " -");
             }
 
             try
             {
-                if (Settings.DEFAULT)
+                if (settings.DEFAULT)
                 {
                     string aaxAuthor = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Performer%", false).Trim();                                      //Author       
                           
@@ -120,132 +119,139 @@ namespace Main
                     string oTitle = onlineDetails[2];
                     file = string.Concat(oAuthor.Trim(), " - ", oTitle.Trim()).Replace("?", "");*/
 
-                    file = structure.Replace("Author", aaxAuthor);
-                    file = file.Replace("Title", aaxTitle);
-                    file = file.Replace("Year", aaxYear);
-                    file = file.Replace("Narrator", aaxNarrator);
-                    file = file.Replace("Bitrate", aaxBitrate);
+                    file = structure.Replace("Author", aaxAuthor)
+                        .Replace("Title", aaxTitle)
+                        .Replace("Year", aaxYear)
+                        .Replace("Narrator", aaxNarrator)
+                        .Replace("Bitrate", aaxBitrate)
+                        .TrimEnd('.');
+
+                    file = GetSafeFilename(file);
 
                     Alert.Success(file);
 
-                    file = file.TrimEnd('.');
+                    codec = settings.Output[0].Codec;
+                    split = settings.Output[0].Split;
+                    cueEnabled = settings.Files[0].Cue;
+                    nfoEnabled = settings.Files[0].NFO;
+                    coverEnabled = settings.Files[0].Cover;
 
-                    Codec = Settings.Output[0].Codec;
-                    Split = Settings.Output[0].Split;
-                    CueEnabled = Settings.Files[0].Cue;
-                    NfoEnabled = Settings.Files[0].NFO;
-                    CoverEnabled = Settings.Files[0].Cover;
-
-                    System.IO.Directory.CreateDirectory($"{hostDir}\\{file}");
+                    Directory.CreateDirectory($"{hostDir}\\{file}");
                     title = file;
                     file = $"{hostDir}\\{file}\\{file.Trim()}";
                 }
                 else
                 {
-                    filename = Get.AaxInformation(aax);
-                    title = filename[0];
-                    filename[0] = filename[0].Trim().Replace(":", " -");
-                    file = ($"{filename[2]} [{filename[1]}] {filename[3].TrimEnd('.')}").Replace("?", "");
+                    file = GetPreferredFilename(aax);
+
                     Alert.Success(file);
-                    var _file = file;
-                    file = $"{hostDir}\\{file.Trim()}\\{file.Trim()}";
-                    System.IO.Directory.CreateDirectory($"{hostDir}\\{_file.Trim()}");
+
+                    string _f = file;
+                    file = Path.Combine(hostDir, file, file);
+                    Directory.CreateDirectory(Path.Combine(hostDir, _f));
                 }
             }
             catch
             {
+                Alert.Error("Bad config");
                 title = aaxTitle;
-                aaxTitle = aaxTitle.Trim()
-                    .Replace(":", " -")
-                    .Replace("?", "")
-                    .TrimEnd('.');
-                file = aaxTitle;
+                aaxTitle = GetSafeFilename(aaxTitle.Trim().Replace(":", " -").TrimEnd('.'));
+                file = GetSafeFilename(aaxTitle);
+
                 Alert.Success(file);
-                file = $"{hostDir}\\{aaxTitle}\\{file.Trim()}";
-                Directory.CreateDirectory($"{hostDir}\\{aaxTitle}");
+
+                file = Path.Combine(hostDir, aaxTitle, file);
+                Directory.CreateDirectory(Path.Combine(hostDir, aaxTitle));
             }
 
-            string format = string.Empty; ;
-            switch (Codec)
+            IAudiobook audio;
+
+            switch (codec.ToLower())
             {
                 case "m4b":
-                    format = "MP4";
+                    audio = Select.M4b();
                     break;
                 case "mp3":
-                    format = "MP3";
+                    audio = Select.Mp3();
+                    break;
+                default: audio = Select.M4b();
                     break;
             }
-
-            string bytes = Get.ActivationBytes(aax);
-
-            if (bytes == string.Empty)
+            audio.Open(aax);
+            audio.SetPathAndFileName(file);
+            if (Path.GetExtension(aax) == ".aaxc")
             {
-                return 0;
-            }
-
-            Stopwatch sw = Stopwatch.StartNew();
-            Thread THR = new Thread(() =>
-            {
-                Create.CueV2(aax, file, Codec, format);
-            });
-            Thread THR1 = new Thread(() =>
-            {
-                Create.AudioBook(bytes, aax, file, Codec, Split);
-            });
-            Thread Lavf_Monitor = new Thread(() =>
-            {
-                Get.Monitor($"{Path.Combine(root, "src\\data\\dump")}\\{Process.GetCurrentProcess().Id.ToString()}.mp3");
-            });
-
-            if (CueEnabled == true)
-            {
-                Alert.Notify("Generating Cue");
-                THR.Start();
-            }
-
-            Alert.Notify("Creating AudioBook");
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            stopwatch.Start();
-            THR1.Start();
-
-            if (Codec != "m4b" && !Split)
-            {
-                Lavf_Monitor.Start();
-                Lavf_Monitor.Join();
-            }
-            THR1.Join();
-            
-            if (CoverEnabled == true)
-            {
-                Alert.Notify("Extracting JPG");
-                SoftWare($"{root}src\\tools\\ffmpeg.exe", $"-i \"{aax}\" -map 0:v -map -0:V -c copy \"{file}.jpg\" -y", true);
-            }
-
-            if (CueEnabled == true)
-            {
-                THR.Join();
-            }
-
-            if (NfoEnabled == true)
-            {
-                string nfo;
-
-                if (!Split)
+                try
                 {
-                    Alert.Notify("Generating NFO");
-                    nfo = Create.nfo(aax, $"{file}.{Codec}");
+                    string voucher = Path.Combine(Path.GetDirectoryName(aax), string.Concat(Path.GetFileNameWithoutExtension(aax), ".voucher"));
+                    if (!File.Exists(voucher))
+                    {
+                        Alert.Error("Voucher not found.");
+                        return 0;
+                    }
+                    else
+                    {
+                        Alert.Notify(Path.GetFileName(voucher));
+                    }
+                    Voucher.Rootobject license = JsonConvert.DeserializeObject<Voucher.Rootobject>(File.ReadAllText(voucher));
+                    audio.SetDecryptionKey(license.content_license.license_response.key, license.content_license.license_response.iv);
                 }
-                else
+                catch (Exception e)
                 {
-                    string[] extensions = { string.Concat('.', Codec) };
-                    var files = Directory.GetFiles(Path.GetDirectoryName(file), ".")
-                        .Where(f => Array.Exists(extensions, e => f.EndsWith(e))).ToArray();
-                    Alert.Notify("Generating NFO");
-                    nfo = Create.nfo(aax, files[0], Split);
+                    Alert.Error($"Unable to parse voucher: {e.Message}");
                 }
-
-                File.WriteAllText($"{file}.nfo", nfo, Encoding.UTF8);
             }
+
+            Thread cueThr = new Thread(() =>
+            {
+                Create.Cuesheet(aax, file);
+            });
+            Thread audioThr = new Thread(() =>
+            {
+                audio.Encode(split);
+                audio.Close();
+                if (nfoEnabled)
+                {
+                    string nfo;
+                    if (!split)
+                    {
+                        Alert.Notify("Generating NFO");
+                        nfo = Create.Nfo(aax, $"{file}.{codec}");
+                    }
+                    else
+                    {
+                        string[] extensions = { string.Concat('.', codec) };
+                        var files = Directory.GetFiles(Path.GetDirectoryName(file), ".")
+                            .Where(f => Array.Exists(extensions, e => f.EndsWith(e))).ToArray();
+                        Alert.Notify("Generating NFO");
+                        nfo = Create.Nfo(aax, files[0], split);
+                    }
+                    File.WriteAllText($"{file}.nfo", nfo, Encoding.UTF8);
+                }
+            });
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+
+            audioThr.Start();
+
+            if (cueEnabled)
+            {
+                Alert.Notify("Generating cuesheet");
+                cueThr.Start();
+                if (coverEnabled)
+                {
+                    Alert.Notify("Extracting JPG");
+                    SoftWare($"{root}src\\tools\\ffmpeg.exe", $"-i \"{aax}\" -map 0:v -map -0:V -c copy \"{file}.jpg\" -y", true);
+                }
+            }
+
+            if (cueThr.IsAlive)
+            {
+                cueThr.Join();
+            }
+
+            audioThr.Join();
 
             sw.Stop();
             Alert.Notify($"Execution: {(sw.ElapsedMilliseconds / 1000).ToString()}s");
@@ -253,35 +259,5 @@ namespace Main
             Console.CursorVisible = true;
             return 0;
         }
-    }
-
-    public class JsonSettings
-    {
-        public bool DEFAULT { get; set; }
-        public Title[] Title { get; set; }
-        public Files[] Files { get; set; }
-        public Output[] Output { get; set; }
-    }
-
-    public class Title
-    {
-        public string T1 { get; set; }
-        public string T2 { get; set; }
-        public string T3 { get; set; }
-        public string T4 { get; set; }
-        public string T5 { get; set; }
-    }
-
-    public class Files
-    {
-        public bool Cue { get; set; }
-        public bool NFO { get; set; }
-        public bool Cover { get; set; }
-    }
-
-    public class Output
-    {
-        public string Codec { get; set; }
-        public bool Split { get; set; }
     }
 }

@@ -11,7 +11,7 @@
     <ErrorReport>none</ErrorReport>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <PackageIcon>302526_data_file_icon.ico</PackageIcon>
-    <FileVersion>2.0.0</FileVersion>
+    <FileVersion>2.0.3</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,6 +31,9 @@
   <ItemGroup>
     <Reference Include="AAXHash">
       <HintPath>..\..\AAXHash\AAXHash\bin\Release\net6.0\win-x64\AAXHash.dll</HintPath>
+    </Reference>
+    <Reference Include="CsAtomReader">
+      <HintPath>..\..\csatomreader\CsAtomReader\bin\Release\netcoreapp2.1\win-x64\CsAtomReader.dll</HintPath>
     </Reference>
   </ItemGroup>
 
