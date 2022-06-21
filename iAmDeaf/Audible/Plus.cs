@@ -28,7 +28,7 @@ namespace iAmDeaf.Plus
             Alert.Notify("Downloading");
             SoftWare(@"src\tools\audible.exe", $@"download -a {ASIN} {param} -o {AppDomain.CurrentDomain.BaseDirectory}src\data\dump --aaxc", false);
 
-            Alert.Notify("Parsing Voucher");
+            /*Alert.Notify("Parsing Voucher");
             var keys = ParseVoucher();
 
             Alert.Notify("Creating Audiobook");
@@ -40,7 +40,7 @@ namespace iAmDeaf.Plus
             {
                 Cleanup(backup);
                 Alert.Success("Audiobook Created");
-            }
+            }*/
         }
 
         public static bool AAXCDecrypt(string key, string iv, bool nfo, bool cue, bool cover, bool split, string codec)
