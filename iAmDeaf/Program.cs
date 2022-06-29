@@ -12,8 +12,6 @@ using iAmDeaf.Interfaces;
 using iAmDeaf.Codecs;
 using iAmDeaf.Plus;
 
-using Workings;
-
 
 
 namespace Workings
@@ -34,7 +32,6 @@ namespace Main
         static int Main(string[] args)
         {
             string aax = string.Empty;
-
 
             if (args.Length > 0)
             {
@@ -204,7 +201,14 @@ namespace Main
 
             Thread cueThr = new Thread(() =>
             {
-                Create.Cuesheet(aax, file);
+                try
+                {
+                    Create.Cuesheet(aax, file, codec);
+                }
+                catch (Exception e)
+                {
+                    Alert.Error($"Cuesheet: {e.Message}");
+                }
             });
             Thread audioThr = new Thread(() =>
             {
@@ -242,7 +246,7 @@ namespace Main
                 if (coverEnabled)
                 {
                     Alert.Notify("Extracting JPG");
-                    SoftWare($"{root}src\\tools\\ffmpeg.exe", $"-i \"{aax}\" -map 0:v -map -0:V -c copy \"{file}.jpg\" -y", true);
+                    SoftWare($"\"{root}src\\tools\\ffmpeg.exe\"", $"-i \"{aax}\" -map 0:v -map -0:V -c copy \"{file}.jpg\" -y", true);
                 }
             }
 

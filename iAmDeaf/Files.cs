@@ -11,10 +11,6 @@ namespace Files
 {
     internal class Create
     {
-        
-
-
-
         public static string root = AppDomain.CurrentDomain.BaseDirectory;
         public static string Nfo(string aax, string file, bool split = false)
         {
@@ -23,7 +19,6 @@ namespace Files
             {
                 aax = string.Concat("\"", aax, "\"");
                 file = string.Concat("\"", file, "\"");
-
 
                 string mi = $"{root}src\\tools\\mediainfo.exe";
                 nfoPart[0] = SoftWare(mi, $"{aax} --Inform=General;%Album%", false);            //Title
@@ -103,10 +98,10 @@ Publisher's Summary
             return nfo;
         }
 
-        public static void Cuesheet(string aax, string file)
+        public static void Cuesheet(string aax, string file, string extention)
         {
             string format = "MP4";
-            if (Path.GetExtension(file) == ".mp3")
+            if (extention == "mp3")
             {
                 format = "MP3";
             }
@@ -116,14 +111,14 @@ Publisher's Summary
             SoftWare($@"{root}src\tools\mkvextract.exe", $" {root}src\\data\\dump\\{PID}.mkv chapters -s {root}src\\data\\dump\\{PID}.txt", true);
 
             string cuegenParams = $@"{root}src\tools\cuegen.vbs {root}src\\data\\dump\\{PID}.txt";
-            var CueGen = Process.Start(@"cmd", @"/c " + cuegenParams);
+            var cueGen = Process.Start(@"cmd", @"/c " + cuegenParams);
 
-            CueGen.WaitForExit();
-            CueGen.Close();
-            CueGen.Dispose();
+            cueGen.WaitForExit();
+            cueGen.Close();
+            cueGen.Dispose();
 
             string[] cue = File.ReadAllLines($"{root}src\\data\\dump\\{PID}.cue");
-            cue[0] = $"FILE \"{Path.GetFileName($"{file}")}\" {format.ToUpper()}";
+            cue[0] = $"FILE \"{Path.GetFileName($"{file}.{extention}")}\" {format.ToUpper()}";
             File.WriteAllLines($"{file}.cue", cue);
 
             if (!File.Exists($"{file}.cue"))
