@@ -1,5 +1,7 @@
 ﻿using Aax.Activation.ApiClient;
 using System.Text;
+using System.Diagnostics;
+using iAmDeaf.Other;
 
 namespace iAmDeaf.Audible
 {
@@ -23,7 +25,8 @@ namespace iAmDeaf.Audible
             }
             catch (Exception ex)
             {
-                Alert.Error("Error calculating Hash: "+ ex.Message);
+                Alert.Error("Error calculating Hash.");
+                Record.Log(ex, new StackTrace(true));
             }
             return String.Empty;
         }
@@ -40,7 +43,8 @@ namespace iAmDeaf.Audible
             }
             catch (Exception ex)
             {
-                Alert.Error("Converting Hash to Hex: "+ex.Message);
+                Alert.Error("Converting Hash to Hex.");
+                Record.Log(ex, new StackTrace(true));
                 return String.Empty;
             }
         }
@@ -72,7 +76,8 @@ namespace iAmDeaf.Audible
                 }
                 catch (Exception ex)
                 {
-                    Alert.Error("Key not found in offline log: "+ex.Message);
+                    Alert.Error("Unable to retrieve Secret.");
+                    Record.Log(ex, new StackTrace(true));
                     return string.Empty;
                 }
             }

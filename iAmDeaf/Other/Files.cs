@@ -6,8 +6,9 @@ using System.Diagnostics;
 using static Other;
 using System.IO;
 using System.Threading;
+using Mp4Chapters;
 
-namespace Files
+namespace iAmDeaf.Other
 {
     internal class Create
     {
@@ -35,14 +36,14 @@ namespace Files
                 nfoPart[11] = SoftWare(mi, $"{aax} --Inform=Audio;%BitRate%", false);           //source bitrate
                 try
                 {
-                    nfoPart[11] = (Int32.Parse(nfoPart[11]) / 1024).ToString();
+                    nfoPart[11] = (int.Parse(nfoPart[11]) / 1024).ToString();
                 }
                 catch
                 {
                     nfoPart[11] = "NULL";
                     Alert.Error("Failed Getting Source BitRate");
                 }
-                if ((Path.GetExtension(file.Replace("\"", "")) == ".m4b"))
+                if (Path.GetExtension(file.Replace("\"", "")) == ".m4b")
                 {
                     nfoPart[12] = SoftWare(mi, $"{file} --Inform=General;%CodecID%", false); //encoded codecID
                 }
@@ -60,12 +61,13 @@ namespace Files
                     }
                     nfoPart[12] = $"{mp3enc} MP3";
                 }
-                nfoPart[13] = (TagLib.File.Create(file.Replace("\"", ""))).Properties.AudioBitrate.ToString();
+                nfoPart[13] = TagLib.File.Create(file.Replace("\"", "")).Properties.AudioBitrate.ToString();
                 nfoPart[14] = SoftWare(mi, $"{aax} --Inform=General;%Track_More%", false); //comment (Track_More)
             }
             catch (Exception ex)
             {
-                Alert.Error($"NFO Failed: {ex.Message}");
+                Alert.Error($"NFO Failed.");
+                Record.Log(ex, new StackTrace(true));
             }
 
             string nfo = @$"General Information
@@ -85,7 +87,7 @@ Media Information
  Source Format:          Audible {nfoPart[9].ToUpper()} ({nfoPart[10]})
  Source Bitrate:         {nfoPart[11]} kbps
 
- Lossless Encode:        {(Path.GetExtension(file.Replace("\"", "")) == ".m4b")}
+ Lossless Encode:        {Path.GetExtension(file.Replace("\"", "")) == ".m4b"}
  Encoded Codec:          {nfoPart[12]}
  Encoded Bitrate:        {nfoPart[13]} kbps
 
@@ -97,42 +99,85 @@ Publisher's Summary
 ";
             return nfo;
         }
-
-        public static void Cuesheet(string aax, string file, string extention)
+        public static void Cuesheet(string aax, string file, string codec)
         {
             string format = "MP4";
-            if (extention == "mp3")
-            {
+            if (codec != "m4b")
                 format = "MP3";
-            }
-            string PID = Process.GetCurrentProcess().Id.ToString();
 
-            SoftWare($@"{root}src\tools\ffmpeg.exe", $" -i \"{aax}\" -c copy -an {root}src\\data\\dump\\{PID}.mkv -y", true);
-            SoftWare($@"{root}src\tools\mkvextract.exe", $" {root}src\\data\\dump\\{PID}.mkv chapters -s {root}src\\data\\dump\\{PID}.txt", true);
-
-            string cuegenParams = $@"{root}src\tools\cuegen.vbs {root}src\\data\\dump\\{PID}.txt";
-            var cueGen = Process.Start(@"cmd", @"/c " + cuegenParams);
-
-            cueGen.WaitForExit();
-            cueGen.Close();
-            cueGen.Dispose();
-
-            string[] cue = File.ReadAllLines($"{root}src\\data\\dump\\{PID}.cue");
-            cue[0] = $"FILE \"{Path.GetFileName($"{file}.{extention}")}\" {format.ToUpper()}";
-            File.WriteAllLines($"{file}.cue", cue);
-
-            if (!File.Exists($"{file}.cue"))
+            try
             {
-                Alert.Error("Cuesheet Failed");
-            }
-            else
-            {
-                Alert.Success("Cuesheet Created");
-            }
+                string performer = SoftWare($@"{root}\src\tools\mediainfo.exe", $"{aax} --Inform=General;%Performer%", false);
+                string date = SoftWare($@"{root}\src\tools\mediainfo.exe", $"{aax} --Inform=General;%rldt%", false);
+                string title = SoftWare($@"{root}\src\tools\mediainfo.exe", $"{aax} --Inform=General;%Album%", false);
 
-            File.Delete($@"{root}src\data\dump\{PID}.cue");
-            File.Delete($@"{root}src\data\dump\{PID}.txt");
-            File.Delete($@"{root}src\data\dump\{PID}.mkv");
+                date = DateTime.Parse(date).ToString("yyyy");
+
+                List<string> cueSheet = new List<string>();
+                cueSheet.Add("REM GENRE Audiobook");
+                cueSheet.Add($"REM DATE {date}");
+                cueSheet.Add($"PERFORMER \"{performer}\"");
+                cueSheet.Add($"TITLE \"{title}\"");
+                cueSheet.Add($"FILE \"{Path.GetFileNameWithoutExtension(file)}.{codec}\" {format}");
+
+                using (var str = File.OpenRead(aax))
+                {
+                    int i = 1;
+                    var extractor = new ChapterExtractor(new StreamWrapper(str));
+                    extractor.Run();
+
+                    foreach (var c in extractor.Chapters)
+                    {
+                        string pos = string.Empty;
+                        if (i<10)
+                        {
+                            pos = new string(String.Concat('0', i));
+                        }
+                        else
+                        {
+                            pos = (i).ToString();
+                        }
+                        string time = (c.Time.ToString(@"dd\:hh\:mm\:ss\:fff"));
+                        
+                        string d = (time.Split(':')[0]);
+                        string h = (time.Split(':')[1].Split(':')[0]);
+                        string m = (time.Split(':')[2].Split(':')[0]);
+                        string s = (time.Split(':')[3].Split(':')[0]);
+                        string ms = (time.Split(':')[4].Split(':')[0]);
+
+                        string cueFrames = ((int)(Int32.Parse(ms) * 0.075)).ToString();
+                        if (cueFrames.Length == 1)
+                            cueFrames = String.Concat('0', cueFrames);
+                        
+                        string cueMin = ((((Int32.Parse(d) * 24) + Int32.Parse(h)) * 60) + Int32.Parse(m)).ToString();
+
+                        if (cueMin.ToString().Length == 1)
+                            cueMin = String.Concat('0', cueMin);
+
+                        cueSheet.Add($"  TRACK {pos} AUDIO");
+                        cueSheet.Add($"    TITLE \"{c.Name}\"");
+                        cueSheet.Add($"    INDEX 01 {cueMin}:{s}:{cueFrames}");
+
+                        i++;
+                    }
+                }
+
+
+                foreach (string ln in cueSheet)
+                {
+                    Console.WriteLine(ln);
+                }
+
+                using (TextWriter tw = new StreamWriter(String.Concat(file, ".cue")))
+                {
+                    foreach (String ln in cueSheet)
+                        tw.WriteLine(ln);
+                }
+            }
+            catch (Exception ex)
+            {
+                Record.Log(ex, new StackTrace(true));
+            }
         }
     }
     public class Get
@@ -141,7 +186,7 @@ Publisher's Summary
 
         public static string[] AaxInformation(string aax)
         {
-            aax = String.Concat("\"", aax, "\"");
+            aax = string.Concat("\"", aax, "\"");
             string mi = $"{root}src\\tools\\mediainfo.exe";
             string[] info = new string[5];
             info[0] = SoftWare(mi, $"{aax} --Inform=General;%Album%", false);
@@ -158,7 +203,7 @@ Publisher's Summary
 
             if (info[1].Length < 2)
             {
-                info[1] = String.Concat("0", info[1]);
+                info[1] = string.Concat("0", info[1]);
             }
 
             return info;

@@ -8,7 +8,7 @@ using NAudio.Wave;
 using NAudio.Lame;
 using NAudio;
 using static Other;
-
+using iAmDeaf.Other;
 
 namespace iAmDeaf.Codecs
 {
@@ -42,9 +42,9 @@ namespace iAmDeaf.Codecs
                 }
                 return true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Alert.Error(e.ToString());
+                Record.Log(ex, new StackTrace(true));
                 return false;
             }
         }
@@ -61,9 +61,9 @@ namespace iAmDeaf.Codecs
                 this.outFile = file;
                 return true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Alert.Error(e.ToString());
+                Record.Log(ex, new StackTrace(true));
                 return false;
             }
         }
@@ -132,7 +132,7 @@ namespace iAmDeaf.Codecs
                     }
                     catch (Exception ex)
                     {
-                        Alert.Error(ex.Message);
+                        Record.Log(ex, new StackTrace(true));
                         return false;
                     }
                     if (!(EmbedCoverArt(string.Concat(this.outFile, ".mp3"), $@"{root}src\data\dump\{PID}.jpg")))
@@ -148,9 +148,9 @@ namespace iAmDeaf.Codecs
                 Alert.Notify(String.Format("Decrypted in {0}ms", sw.ElapsedMilliseconds.ToString()));
                 return true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Alert.Error(e.ToString());
+                Record.Log(ex, new StackTrace(true));
                 return false;
             }
         }
@@ -161,9 +161,9 @@ namespace iAmDeaf.Codecs
                 this.encryptedFile.Close();
                 return true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Alert.Error(e.ToString());
+                Record.Log(ex, new StackTrace(true));
                 return false;
             }
         }
@@ -195,7 +195,8 @@ namespace iAmDeaf.Codecs
             }
             catch (Exception ex)
             {
-                Alert.Error($"Unable to set cover art: {ex.Message}");
+                Alert.Error($"Unable to set cover art.");
+                Record.Log(ex, new StackTrace(true));
                 return false;
             }
         }

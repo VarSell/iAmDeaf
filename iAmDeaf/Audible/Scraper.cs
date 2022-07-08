@@ -1,12 +1,8 @@
-﻿using System.Text;
-using Newtonsoft.Json;
-using System.Text.Json;
-using System.Collections.Generic;
+﻿using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 using System.Net;
-using System.IO;
-using System.Drawing;
 using System.Diagnostics;
+using iAmDeaf.Other;
 
 namespace iAmDeaf.Audible
 {
@@ -87,7 +83,8 @@ namespace iAmDeaf.Audible
                 catch (Exception ex)
                 {
                     Genre = String.Empty;
-                    Alert.Notify($"Genre: {ex.Message}");
+                    Alert.Notify($"Genre");
+                    Record.Log(ex, new StackTrace(true));
                 }
 
                 if (Book[0].author.Length > 1)
@@ -121,8 +118,8 @@ namespace iAmDeaf.Audible
             }
             catch (Exception ex)
             {
-                Alert.Error(ex.Message);
                 Alert.Error("Json parsing failed");
+                Record.Log(ex, new StackTrace(true));
             }
 
             // author series title

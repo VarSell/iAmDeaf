@@ -2,6 +2,7 @@
 using iAmDeaf.Interfaces;
 using CsAtomReader;
 using System.Diagnostics;
+using iAmDeaf.Other;
 
 namespace iAmDeaf.Codecs
 {
@@ -35,9 +36,9 @@ namespace iAmDeaf.Codecs
                 }
                 return true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Alert.Error(e.ToString());
+                Record.Log(ex, new StackTrace(true));
                 return false;
             }
         }
@@ -54,9 +55,9 @@ namespace iAmDeaf.Codecs
                 this.outFile = string.Concat(file, ".", this.GetType().Name.ToLower());
                 return true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Alert.Error(e.ToString());
+                Record.Log(ex, new StackTrace(true));
                 return false;
             }
         }
@@ -97,12 +98,11 @@ namespace iAmDeaf.Codecs
                 Alert.Notify(String.Format("Decrypted in {0}ms", sw.ElapsedMilliseconds.ToString()));
                 return true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Alert.Error(e.ToString());
+                Record.Log(ex, new StackTrace(true));
                 return false;
             }
-            return true;
         }
         public bool Close()
         {
@@ -111,9 +111,9 @@ namespace iAmDeaf.Codecs
                 this.encryptedFile.Close();
                 return true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Alert.Error(e.ToString());
+                Record.Log(ex, new StackTrace(true));
                 return false;
             }
         }

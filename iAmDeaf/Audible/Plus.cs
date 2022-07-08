@@ -1,9 +1,9 @@
 ﻿using AAXClean;
 using Newtonsoft.Json;
 using static Other;
-using Files;
 using System.Diagnostics;
 using iAmDeaf.Audible;
+using iAmDeaf.Other;
 
 namespace iAmDeaf.Plus
 {
@@ -28,7 +28,7 @@ namespace iAmDeaf.Plus
             Alert.Notify("Downloading");
             SoftWare(@"src\tools\audible.exe", $@"download -a {ASIN} {param} -o {AppDomain.CurrentDomain.BaseDirectory}src\data\dump --aaxc", false);
 
-            /*Alert.Notify("Parsing Voucher");
+            Alert.Notify("Parsing Voucher");
             var keys = ParseVoucher();
 
             Alert.Notify("Creating Audiobook");
@@ -40,7 +40,7 @@ namespace iAmDeaf.Plus
             {
                 Cleanup(backup);
                 Alert.Success("Audiobook Created");
-            }*/
+            }
         }
 
         public static bool AAXCDecrypt(string key, string iv, bool nfo, bool cue, bool cover, bool split, string codec)
@@ -88,7 +88,7 @@ namespace iAmDeaf.Plus
 
                 if (cue)
                 {
-                    Create.Cuesheet(file, Path.Combine(fileDir, filename));
+                    Create.Cuesheet(file, Path.Combine(fileDir, filename), codec);
                 }
 
                 if (cover)
@@ -110,7 +110,7 @@ namespace iAmDeaf.Plus
             }
             catch (Exception ex)
             {
-                Alert.Error(ex.Message);
+                Record.Log(ex, new StackTrace(true));
                 return false;
             }
         }
@@ -157,7 +157,7 @@ namespace iAmDeaf.Plus
             }
             catch (Exception ex)
             {
-                Alert.Error(ex.Message);
+                Record.Log(ex, new StackTrace(true));
                 return null;
             }
         }

@@ -1,13 +1,14 @@
 ﻿using System.Text;
 using System.Diagnostics;
+using iAmDeaf.Other;
 
 internal class Other
 {
     public static string SoftWare(string software, string arguments, bool std)
     {
         Process SoftWare = new Process();
-        SoftWare.StartInfo.FileName = @$"{software}";
-        SoftWare.StartInfo.Arguments = $" {arguments} ";
+        SoftWare.StartInfo.FileName = software;
+        SoftWare.StartInfo.Arguments = arguments;
 
         if (std == true)
         {
@@ -45,7 +46,7 @@ internal class Other
         string filename = SoftWare(@"src\tools\mediainfo.exe", $"\"{file}\" --Inform=General;%Album%", false);
         try
         {
-            var _filename = Files.Get.AaxInformation(file);
+            var _filename = Get.AaxInformation(file);
             var title = _filename[0];
             _filename[0] = _filename[0].Trim().Replace(":", " -");
             string placeholder = _filename[1].Replace("(Unabridged)", string.Empty);

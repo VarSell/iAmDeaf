@@ -1,5 +1,4 @@
 ﻿using System.Text;
-
 class Alert
 {
     public static void Notify(string alert)
@@ -17,7 +16,7 @@ class Alert
         Console.OutputEncoding = Encoding.UTF8;
         Console.Write("  [Error: ");
         Console.ForegroundColor = ConsoleColor.Red;
-        Console.Write(alert);
+        Console.Error.Write(alert);
         Console.ResetColor();
         Console.WriteLine("]");
         Console.OutputEncoding = Encoding.Default;

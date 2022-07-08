@@ -4,15 +4,13 @@ using System.Globalization;
 using System.Threading;
 using Newtonsoft.Json;
 using System.Diagnostics;
-using Files;
 using static Other;
 using iAmDeaf.Audible;
 using CsAtomReader;
 using iAmDeaf.Interfaces;
 using iAmDeaf.Codecs;
 using iAmDeaf.Plus;
-
-
+using iAmDeaf.Other;
 
 namespace Workings
 {
@@ -25,6 +23,7 @@ namespace Workings
 
 namespace Main
 {
+    using Mp4Chapters;
     internal class Program
     {
         public static string root = AppDomain.CurrentDomain.BaseDirectory;
@@ -44,7 +43,7 @@ namespace Main
                     }
                     catch (Exception ex)
                     {
-                        Alert.Error(ex.Message);
+                        Record.Log(ex, new StackTrace(true));
                     }
                     return 0;
                 }
@@ -67,15 +66,8 @@ namespace Main
                 return 0;
             }
 
-            if (Path.GetExtension(aax) == ".aaxc")
-            {
-                //Local.GetPaths(aax);
-                //return 0;
-            }
-
             Console.CursorVisible = false;
 
-            string[] filename;
             string title, file = string.Empty;
             string codec = "m4b";
             bool cueEnabled = true;
@@ -85,7 +77,6 @@ namespace Main
             string hostDir = Path.GetDirectoryName(aax);
 
             Alert.Notify("Parsing File");
-            
             settings = JsonConvert.DeserializeObject<iAmDeaf.Config.Settings>(File.ReadAllText($"{root}\\src\\config.json"));
             string structure = $"{settings.Title[0].T1} {settings.Title[0].T2} {settings.Title[0].T3} {settings.Title[0].T4} {settings.Title[0].T5}";
             structure = Regex.Replace(structure.Replace("null", null), @"\s+", " ").Trim();
@@ -148,9 +139,10 @@ namespace Main
                     Directory.CreateDirectory(Path.Combine(hostDir, _f));
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 Alert.Error("Bad config");
+                Record.Log(ex, new StackTrace(true));
                 title = aaxTitle;
                 aaxTitle = GetSafeFilename(aaxTitle.Trim().Replace(":", " -").TrimEnd('.'));
                 file = GetSafeFilename(aaxTitle);
@@ -193,9 +185,10 @@ namespace Main
                     Voucher.Rootobject license = JsonConvert.DeserializeObject<Voucher.Rootobject>(File.ReadAllText(voucher));
                     audio.SetDecryptionKey(license.content_license.license_response.key, license.content_license.license_response.iv);
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    Alert.Error($"Unable to parse voucher: {e.Message}");
+                    Alert.Error($"Unable to parse voucher.");
+                    Record.Log(ex, new StackTrace(true));
                 }
             }
 
@@ -205,9 +198,9 @@ namespace Main
                 {
                     Create.Cuesheet(aax, file, codec);
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    Alert.Error($"Cuesheet: {e.Message}");
+                    Record.Log(ex, new StackTrace(true));
                 }
             });
             Thread audioThr = new Thread(() =>
