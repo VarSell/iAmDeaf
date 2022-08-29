@@ -169,7 +169,7 @@ namespace iAmDeaf.Codecs
         }
         internal static bool EmbedCoverArt(string audioFilePath, string coverFilePath)
         {
-            if (!(File.Exists(audioFilePath) || File.Exists(coverFilePath)))
+            if (!(File.Exists(audioFilePath) || !File.Exists(coverFilePath)))
             {
                 Alert.Error("Audio and/or Cover file(s) do not exist.");
                 return false;
