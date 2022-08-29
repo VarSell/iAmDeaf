@@ -5,7 +5,6 @@ using System.Text;
 using System.Diagnostics;
 using static Other;
 using System.IO;
-using System.Threading;
 using Mp4Chapters;
 
 namespace iAmDeaf.Other
@@ -162,12 +161,6 @@ Publisher's Summary
                     }
                 }
 
-
-                foreach (string ln in cueSheet)
-                {
-                    Console.WriteLine(ln);
-                }
-
                 using (TextWriter tw = new StreamWriter(String.Concat(file, ".cue")))
                 {
                     foreach (String ln in cueSheet)
@@ -183,7 +176,6 @@ Publisher's Summary
     public class Get
     {
         public static string root = AppDomain.CurrentDomain.BaseDirectory;
-
         public static string[] AaxInformation(string aax)
         {
             aax = string.Concat("\"", aax, "\"");
