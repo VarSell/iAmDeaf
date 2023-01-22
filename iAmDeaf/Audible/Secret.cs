@@ -3,10 +3,58 @@ using System.Text;
 using System.Diagnostics;
 using iAmDeaf.Other;
 
+using System.Data.SQLite;
+
 namespace iAmDeaf.Audible
 {
     internal class Secret
     {
+        /*internal static void InsertSqlTest(string data)
+        {
+            SQLiteConnection con;
+            SQLiteCommand cmd;
+            SQLiteDataReader dr;
+            if (!File.Exists("MyDatabase.sqlite"))
+            {
+                SQLiteConnection.CreateFile("MyDatabase.sqlite");
+
+                string sql = @"CREATE TABLE keys(
+                               ID INTEGER PRIMARY KEY AUTOINCREMENT ,
+                               HASH           TEXT      NOT NULL,
+                               BYTES           TEXT     NOT NULL
+                            );";
+                con = new SQLiteConnection("Data Source=MyDatabase.sqlite;Version=3;");
+                con.Open();
+                cmd = new SQLiteCommand(sql, con);
+                cmd.ExecuteNonQuery();
+                con.Close();
+
+            }
+            else
+            {
+                con = new SQLiteConnection("Data Source=MyDatabase.sqlite;Version=3;");
+            }
+
+            int counter = 0;
+            cmd = new SQLiteCommand("Select *From keys", con);
+            con.Open();
+            dr = cmd.ExecuteReader();
+            while (dr.Read())
+            {
+                counter++;
+                Console.WriteLine(dr[0] + " : " + dr[1]+" "+dr[2]);
+
+            }
+            con.Close();
+        }*/
+    
+
+
+
+
+
+
+
         internal static async Task<string> aaxcAsync(string checksum)
         {
             return AaxActivationClient.Instance.ResolveActivationBytes(checksum).Result.ToString();

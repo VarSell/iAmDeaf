@@ -11,27 +11,37 @@ using iAmDeaf.Interfaces;
 using iAmDeaf.Codecs;
 using iAmDeaf.Plus;
 using iAmDeaf.Other;
-
-namespace Workings
-{
-    public class iAmDeaf
-    {
-        public const string mark = "iAmDeaf";
-        public const string version = "2.0.3";
-    }
-}
-
 namespace Main
 {
     using Mp4Chapters;
+    using Newtonsoft.Json.Linq;
+
     internal class Program
     {
+        internal const string MARK = "iAmDeaf";
+        internal const string VERSION = "2.0.3";
         public static string root = AppDomain.CurrentDomain.BaseDirectory;
-        public static iAmDeaf.Config.Settings? settings;
+
+        internal static string Title
+        { get; set; }
+        internal static string DestinationFile
+        { get; set; }
+        internal static string Aax
+        { get; set; }
+        internal static Boolean CueEnabled
+        { get; set; }
+        internal static Boolean NfoEnabled
+        { get; set; }
+        internal static Boolean CoverEnabled
+        { get; set; }
+        internal static Boolean SplitFile
+        { get; set; }
+        internal string HostDirectory
+        { get; set; }
+        internal static string Root = AppDomain.CurrentDomain.BaseDirectory;
+
         static int Main(string[] args)
         {
-            string aax = string.Empty;
-
             if (args.Length > 0)
             {
                 if (args[0] == "-c")
@@ -53,7 +63,7 @@ namespace Main
                     aax = obj.ToString();
                 }
 
-                if (!File.Exists(aax))
+                if (!File.Exists(Aax))
                 {
                     Alert.Error("Invalid filename.");
                     return 0;
@@ -68,19 +78,13 @@ namespace Main
 
             Console.CursorVisible = false;
 
-            string title, file = string.Empty;
-            string codec = "m4b";
-            bool cueEnabled = true;
-            bool nfoEnabled = true;
-            bool coverEnabled = true;
-            bool split = false;
-            string hostDir = Path.GetDirectoryName(aax);
+            
 
             Alert.Notify("Parsing File");
-            settings = JsonConvert.DeserializeObject<iAmDeaf.Config.Settings>(File.ReadAllText($"{root}\\src\\config.json"));
-            string structure = $"{settings.Title[0].T1} {settings.Title[0].T2} {settings.Title[0].T3} {settings.Title[0].T4} {settings.Title[0].T5}";
-            structure = Regex.Replace(structure.Replace("null", null), @"\s+", " ").Trim();
-            structure = structure.Replace(" ", " - ");
+            dynamic settings = JObject.Parse(File.ReadAllText(Path.Combine(Root, "src\\configuration.json")));
+            string preferredFilename = String.Concat((string)settings["Title"][0]["T1"], " ", (string)settings.["Title"][0]["T2"], " ", (string)settings["Title"][0]["T3"], " ", (string)settings["Title"][0]["T4"], " ", (string)settings["Title"][0]["T5"]);
+            
+            preferredFilename = Regex.Replace(preferredFilename.Replace("null", null), @"\s+", " ").Trim().Replace (" ", " - ");
 
             
             string aaxTitle = string.Empty;
@@ -94,18 +98,11 @@ namespace Main
             {
                 if (settings.DEFAULT)
                 {
-                    string aaxAuthor = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Performer%", false).Trim();                                      //Author       
-                          
-                    string aaxYear = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%rldt%", false).Trim();                                             //Year        
-                    aaxYear = DateTime.ParseExact(aaxYear, "dd-MMM-yyyy", CultureInfo.InvariantCulture).ToString("yyyy");          
-                    string aaxNarrator = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%nrt%", false).Trim();                                          //Narrator         
-                    string aaxBitrate = (Int32.Parse(SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=Audio;%BitRate%", false).Trim()) / 1000).ToString() + "K";  //Bitrate            //Bitrate
-
-                    /*string[] onlineDetails = Scraper.Scrape(SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Album%", false));
-
-                    string oAuthor = onlineDetails[4];
-                    string oTitle = onlineDetails[2];
-                    file = string.Concat(oAuthor.Trim(), " - ", oTitle.Trim()).Replace("?", "");*/
+                    string aaxAuthor = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Performer%", false).Trim();                          
+                    string aaxYear = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%rldt%", false).Trim(); 
+                    aaxYear = DateTime.ParseExact(aaxYear, "dd-MMM-yyyy", CultureInfo.InvariantCulture).ToString("yyyy");
+                    string aaxNarrator = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%nrt%", false).Trim();     
+                    string aaxBitrate = (Int32.Parse(SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=Audio;%BitRate%", false).Trim()) / 1000).ToString() + "K";
 
                     file = structure.Replace("Author", aaxAuthor)
                         .Replace("Title", aaxTitle)
@@ -207,7 +204,7 @@ namespace Main
             {
                 audio.Encode(split);
                 audio.Close();
-                if (nfoEnabled)
+                if (NfoEnabled)
                 {
                     string nfo;
                     if (!split)

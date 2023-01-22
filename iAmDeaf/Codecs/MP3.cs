@@ -98,7 +98,6 @@ namespace iAmDeaf.Codecs
                 else
                 {
                     string PID = Process.GetCurrentProcess().Id.ToString();
-                    string root = AppDomain.CurrentDomain.BaseDirectory;
                     try
                     {
                         sw.Start();

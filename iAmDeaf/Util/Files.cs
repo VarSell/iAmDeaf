@@ -6,12 +6,13 @@ using System.Diagnostics;
 using static Other;
 using System.IO;
 using Mp4Chapters;
+using Main;
 
-namespace iAmDeaf.Other
+namespace iAmDeaf.Util
 {
     internal class Create
     {
-        public static string root = AppDomain.CurrentDomain.BaseDirectory;
+        internal static string Root = AppDomain.CurrentDomain.BaseDirectory;
         public static string Nfo(string aax, string file, bool split = false)
         {
             string[] nfoPart = new string[15];
@@ -44,7 +45,7 @@ namespace iAmDeaf.Other
                 }
                 if (Path.GetExtension(file.Replace("\"", "")) == ".m4b")
                 {
-                    nfoPart[12] = SoftWare(mi, $"{file} --Inform=General;%CodecID%", false); //encoded codecID
+                    nfoPart[12] = SoftWare(mi, $"{file} --Inform=General;%CodecID%", false);
                 }
                 else
                 {
@@ -61,12 +62,11 @@ namespace iAmDeaf.Other
                     nfoPart[12] = $"{mp3enc} MP3";
                 }
                 nfoPart[13] = TagLib.File.Create(file.Replace("\"", "")).Properties.AudioBitrate.ToString();
-                nfoPart[14] = SoftWare(mi, $"{aax} --Inform=General;%Track_More%", false); //comment (Track_More)
+                nfoPart[14] = SoftWare(mi, $"{aax} --Inform=General;%Track_More%", false);
             }
             catch (Exception ex)
             {
-                Alert.Error($"NFO Failed.");
-                Record.Log(ex, new StackTrace(true));
+                Alert.Error(ex.Message);
             }
 
             string nfo = @$"General Information
@@ -90,7 +90,7 @@ Media Information
  Encoded Codec:          {nfoPart[12]}
  Encoded Bitrate:        {nfoPart[13]} kbps
 
- Ripper:                 {Workings.iAmDeaf.mark} {Workings.iAmDeaf.version}
+ Ripper:                 {Program.MARK} {Program.VERSION}
 
 Publisher's Summary
 ===================
@@ -98,11 +98,13 @@ Publisher's Summary
 ";
             return nfo;
         }
-        public static void Cuesheet(string aax, string file, string codec)
+        public static void CueSheet(string aax, string file, string codec)
         {
             string format = "MP4";
             if (codec != "m4b")
+            {
                 format = "MP3";
+            }
 
             try
             {
@@ -169,17 +171,16 @@ Publisher's Summary
             }
             catch (Exception ex)
             {
-                Record.Log(ex, new StackTrace(true));
+                Alert.Error(ex.Message);
             }
         }
     }
     public class Get
     {
-        public static string root = AppDomain.CurrentDomain.BaseDirectory;
         public static string[] AaxInformation(string aax)
         {
             aax = string.Concat("\"", aax, "\"");
-            string mi = $"{root}src\\tools\\mediainfo.exe";
+            string mi = Path.Combine(Root, "src\\tools\\mediainfo.exe");
             string[] info = new string[5];
             info[0] = SoftWare(mi, $"{aax} --Inform=General;%Album%", false);
             info[1] = info[0].Split(",").Last().Trim();
