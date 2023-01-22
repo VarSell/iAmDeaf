@@ -36,7 +36,7 @@ namespace Main
         { get; set; }
         internal static Boolean SplitFile
         { get; set; }
-        internal string HostDirectory
+        internal static string HostDirectory
         { get; set; }
         internal static string Root = AppDomain.CurrentDomain.BaseDirectory;
 
@@ -87,41 +87,40 @@ namespace Main
             preferredFilename = Regex.Replace(preferredFilename.Replace("null", null), @"\s+", " ").Trim().Replace (" ", " - ");
 
             
-            string aaxTitle = string.Empty;
-            using (FileStream stream = new FileStream(aax, FileMode.Open))
+            using (FileStream stream = new FileStream(Aax, FileMode.Open))
             {
-                aaxTitle = new AtomReader(stream)
+                Title = new AtomReader(stream)
                 .GetMetaAtomValue(AtomReader.TitleTypeName).Replace(":", " -");
             }
 
             try
             {
-                if (settings.DEFAULT)
+                if (Convert.ToBoolean(settings["DEFAULT"]))
                 {
-                    string aaxAuthor = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%Performer%", false).Trim();                          
-                    string aaxYear = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%rldt%", false).Trim(); 
+                    string aaxAuthor = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{Aax}\" --Inform=General;%Performer%", false).Trim();                          
+                    string aaxYear = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{Aax}\" --Inform=General;%rldt%", false).Trim(); 
                     aaxYear = DateTime.ParseExact(aaxYear, "dd-MMM-yyyy", CultureInfo.InvariantCulture).ToString("yyyy");
-                    string aaxNarrator = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=General;%nrt%", false).Trim();     
-                    string aaxBitrate = (Int32.Parse(SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{aax}\" --Inform=Audio;%BitRate%", false).Trim()) / 1000).ToString() + "K";
+                    string aaxNarrator = SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{Aax}\" --Inform=General;%nrt%", false).Trim();     
+                    string aaxBitrate = (Int32.Parse(SoftWare($"{root}src\\tools\\mediainfo.exe", $"\"{Aax}\" --Inform=Audio;%BitRate%", false).Trim()) / 1000).ToString() + "K";
 
-                    file = structure.Replace("Author", aaxAuthor)
+                    DestinationFile = preferredFilename.Replace("Author", aaxAuthor)
                         .Replace("Title", aaxTitle)
                         .Replace("Year", aaxYear)
                         .Replace("Narrator", aaxNarrator)
                         .Replace("Bitrate", aaxBitrate)
                         .TrimEnd('.');
 
-                    file = GetSafeFilename(file);
+                    DestinationFile = GetSafeFilename(DestinationFile);
 
-                    Alert.Success(file);
+                    Alert.Success(DestinationFile);
 
-                    codec = settings.Output[0].Codec;
-                    split = settings.Output[0].Split;
+                    Codec = (string)settings["Output"][0]["Codec"];
+                    SplitFile = (Boolean)settings["Output"][0]["Split"];
                     cueEnabled = settings.Files[0].Cue;
                     nfoEnabled = settings.Files[0].NFO;
                     coverEnabled = settings.Files[0].Cover;
 
-                    Directory.CreateDirectory($"{hostDir}\\{file}");
+                    Directory.CreateDirectory(Path.Combine(HostDirectory, DestinationFile));
                     title = file;
                     file = $"{hostDir}\\{file}\\{file.Trim()}";
                 }
@@ -193,24 +192,24 @@ namespace Main
             {
                 try
                 {
-                    Create.Cuesheet(aax, file, codec);
+                    iAmDeaf.Util.Create.CueSheet(Aax, DestinationFile, Codec);
                 }
                 catch (Exception ex)
                 {
-                    Record.Log(ex, new StackTrace(true));
+                    Alert.Error(ex.Message);
                 }
             });
             Thread audioThr = new Thread(() =>
             {
-                audio.Encode(split);
+                audio.Encode(SplitFile);
                 audio.Close();
                 if (NfoEnabled)
                 {
                     string nfo;
-                    if (!split)
+                    if (!SplitFile)
                     {
                         Alert.Notify("Generating NFO");
-                        nfo = Create.Nfo(aax, $"{file}.{codec}");
+                        nfo = iAmDeaf.Util.Create.Nfo(Aax, String.Concat(DestinationFile, Codec));
                     }
                     else
                     {

@@ -10,7 +10,7 @@ using Main;
 
 namespace iAmDeaf.Util
 {
-    internal class Create
+    internal static class Create
     {
         internal static string Root = AppDomain.CurrentDomain.BaseDirectory;
         public static string Nfo(string aax, string file, bool split = false)
@@ -21,7 +21,7 @@ namespace iAmDeaf.Util
                 aax = string.Concat("\"", aax, "\"");
                 file = string.Concat("\"", file, "\"");
 
-                string mi = $"{root}src\\tools\\mediainfo.exe";
+                string mi = $"{Root}\\src\\tools\\mediainfo.exe";
                 nfoPart[0] = SoftWare(mi, $"{aax} --Inform=General;%Album%", false);            //Title
                 nfoPart[1] = SoftWare(mi, $"{aax} --Inform=General;%Performer%", false);        //Author
                 nfoPart[2] = SoftWare(mi, $"{aax} --Inform=General;%nrt%", false);              //Narrator
